@@ -60,6 +60,7 @@ interface TripState {
   tripPreferences: TripPreferences | null;
   tripPlan: TripPlan | null;
   tripVisitCountries: string[] | null;
+  daysPerCountry: Record<string, number>;
   
   // UI state
   selectedTripId: string | null;
@@ -69,6 +70,7 @@ interface TripState {
   setTripEndPoint: (endPoint: TripEndPoint | null) => void;
   setTripPreferences: (preferences: TripPreferences) => void;
   setTripVisitCountries: (countryIds: string[]) => void;
+  setDaysPerCountry: (daysPerCountry: Record<string, number>) => void;
   generateTripPlan: () => void;
   resetTripPlanning: () => void;
   
@@ -121,6 +123,7 @@ export const useTripStore = create<TripState>()(
       tripPreferences: null,
       tripPlan: null,
       tripVisitCountries: null,
+      daysPerCountry: {},
       
       // UI state
       selectedTripId: null,
@@ -142,13 +145,18 @@ export const useTripStore = create<TripState>()(
         set({ tripVisitCountries: countryIds });
       },
       
+      setDaysPerCountry: (daysPerCountryData) => {
+        set({ daysPerCountry: daysPerCountryData });
+      },
+      
       resetTripPlanning: () => {
         set({
           tripStartPoint: null,
           tripEndPoint: null,
           tripPreferences: null,
           tripPlan: null,
-          tripVisitCountries: null
+          tripVisitCountries: null,
+          daysPerCountry: {}
         });
       },
       
@@ -195,19 +203,31 @@ export const useTripStore = create<TripState>()(
         
         // Distribute countries across days
         const totalCountries = locations.length;
-        const daysPerCountry = Math.floor(diffDays / totalCountries);
+        const daysPerCountryValue = Math.floor(diffDays / totalCountries);
         let remainingDays = diffDays % totalCountries;
         
-        let currentDay = 0;
-        for (let i = 0; i < totalCountries; i++) {
-          const countryId = locations[i];
-          let countryDays = daysPerCountry;
+        // Create daysPerCountry object
+        const daysPerCountry: Record<string, number> = {};
+        
+        // Initialize days for each country
+        locations.forEach(countryId => {
+          daysPerCountry[countryId] = daysPerCountryValue;
           
           // Distribute remaining days
           if (remainingDays > 0) {
-            countryDays++;
+            daysPerCountry[countryId]++;
             remainingDays--;
           }
+        });
+        
+        // Update the state with daysPerCountry
+        set({ daysPerCountry });
+        
+        // Create the days array
+        let currentDay = 0;
+        
+        for (const countryId of locations) {
+          const countryDays = daysPerCountry[countryId];
           
           for (let j = 0; j < countryDays; j++) {
             const currentDate = new Date(startDate);
@@ -414,7 +434,8 @@ export const useTripStore = create<TripState>()(
             tripEndPoint: null,
             tripPreferences: null,
             tripPlan: null,
-            tripVisitCountries: null
+            tripVisitCountries: null,
+            daysPerCountry: {}
           }));
         } else {
           // Regular trip creation
@@ -618,7 +639,13 @@ export const useTripStore = create<TripState>()(
         trips: state.trips,
         tripDays: state.tripDays,
         tripActivities: state.tripActivities,
-        selectedTripId: state.selectedTripId
+        selectedTripId: state.selectedTripId,
+        daysPerCountry: state.daysPerCountry,
+        tripStartPoint: state.tripStartPoint,
+        tripEndPoint: state.tripEndPoint,
+        tripPreferences: state.tripPreferences,
+        tripPlan: state.tripPlan,
+        tripVisitCountries: state.tripVisitCountries
       })
     }
   )

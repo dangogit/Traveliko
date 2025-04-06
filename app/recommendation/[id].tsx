@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { StyleSheet, Text, View, ScrollView, SafeAreaView, Linking, Pressable } from 'react-native';
 import { useLocalSearchParams, Stack } from 'expo-router';
 import { useTravelStore } from '@/store/travel-store';
@@ -6,6 +6,7 @@ import colors from '@/constants/colors';
 import { Image } from 'expo-image';
 import EmptyState from '@/components/EmptyState';
 import { MapPin, Star, Phone, Globe, Heart } from 'lucide-react-native';
+import { useNavigation } from '@react-navigation/native';
 
 export default function RecommendationScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -17,6 +18,7 @@ export default function RecommendationScreen() {
     removeFavorite,
     isFavorite
   } = useTravelStore();
+  const navigation = useNavigation();
 
   const recommendation = getRecommendationById(id);
   const location = recommendation ? getLocationById(recommendation.locationId) : null;
@@ -56,6 +58,14 @@ export default function RecommendationScreen() {
     }
   };
 
+  useEffect(() => {
+    if (recommendation) {
+      navigation.setOptions({
+        title: recommendation.nameHe,
+      });
+    }
+  }, [navigation, recommendation]);
+
   if (!recommendation) {
     return (
       <EmptyState 
@@ -68,18 +78,7 @@ export default function RecommendationScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Stack.Screen options={{ 
-        title: recommendation.nameHe,
-        headerRight: () => (
-          <Pressable onPress={toggleFavorite} style={{ marginRight: 16 }}>
-            <Heart 
-              size={24} 
-              color={colors.primary} 
-              fill={isFav ? colors.primary : "transparent"} 
-            />
-          </Pressable>
-        )
-      }} />
+      <Stack.Screen />
       
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.headerContainer}>

@@ -5,7 +5,7 @@ import { regions } from '@/mocks/regions';
 import { countries } from '@/mocks/countries';
 import { locations } from '@/mocks/locations';
 import { recommendations } from '@/mocks/recommendations';
-import { ChatMessage, UserFavorite, UserHistory, TravelerType, Season } from '@/types/travel';
+import { ChatMessage, UserFavorite, UserHistory, TravelerType, Season, Country, Location, Recommendation } from '@/types/travel';
 
 interface TravelState {
   // Data
@@ -75,6 +75,11 @@ interface TravelState {
     locations: (typeof locations);
     recommendations: (typeof recommendations);
   };
+  
+  // Getters for favorites (declare them here)
+  getFavoriteCountries: () => Country[];
+  getFavoriteLocations: () => Location[];
+  getFavoriteRecommendations: () => Recommendation[];
   
   // Reset function
   resetFavorites: () => void;
@@ -179,6 +184,28 @@ export const useTravelStore = create<TravelState>()(
       getLocationById: (id) => get().locations.find(location => location.id === id),
       getRecommendationById: (id) => get().recommendations.find(rec => rec.id === id),
       
+      // Add implementations for favorite getters
+      getFavoriteCountries: () => {
+        const favoriteIds = get().favorites
+          .filter(fav => fav.type === 'country')
+          .map(fav => fav.itemId);
+        return get().countries.filter(country => favoriteIds.includes(country.id));
+      },
+      
+      getFavoriteLocations: () => {
+        const favoriteIds = get().favorites
+          .filter(fav => fav.type === 'location')
+          .map(fav => fav.itemId);
+        return get().locations.filter(location => favoriteIds.includes(location.id));
+      },
+      
+      getFavoriteRecommendations: () => {
+        const favoriteIds = get().favorites
+          .filter(fav => fav.type === 'recommendation')
+          .map(fav => fav.itemId);
+        return get().recommendations.filter(rec => favoriteIds.includes(rec.id));
+      },
+
       getCountriesByRegion: (regionId) => 
         get().countries.filter(country => country.regionId === regionId),
       
@@ -187,7 +214,7 @@ export const useTravelStore = create<TravelState>()(
       
       getLocationsByCountryId: (countryId) => 
         get().locations.filter(location => location.countryId === countryId),
-      
+        
       getRecommendationsByLocation: (locationId, type, travelerType, season) => {
         let recs = get().recommendations.filter(rec => rec.locationId === locationId);
         

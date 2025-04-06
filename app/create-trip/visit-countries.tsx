@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   StyleSheet, 
   Text, 
@@ -8,35 +8,142 @@ import {
   TextInput, 
   Pressable,
   Alert,
-  ActivityIndicator
+  ActivityIndicator,
+  TouchableOpacity,
+  FlatList
 } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { useTripStore } from '@/store/trip-store';
 import { useTravelStore } from '@/store/travel-store';
 import colors from '@/constants/colors';
-import { Search, Check, ArrowRight, ArrowLeft, Plus, X } from 'lucide-react-native';
+import { Search, Check, ArrowRight, ArrowLeft, Plus, X, Globe, Calendar, Minus } from 'lucide-react-native';
 import StepIndicator from '@/components/StepIndicator';
 import BackButton from '@/components/BackButton';
 import { Image } from 'expo-image';
 import { Country } from '@/types/travel';
+import { LinearGradient } from 'expo-linear-gradient';
+import CountryFlag from '@/components/CountryFlag';
 
 export default function VisitCountriesScreen() {
   const router = useRouter();
-  const { countries } = useTravelStore();
-  const { tripStartPoint, setTripVisitCountries, tripVisitCountries } = useTripStore();
+  const { countries, getCountryById } = useTravelStore();
+  const { tripStartPoint, setTripVisitCountries, tripVisitCountries, setDaysPerCountry: setStoreDaysPerCountry, daysPerCountry: daysPerCountryFromStore } = useTripStore();
   
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCountries, setSelectedCountries] = useState<Country[]>(
-    tripVisitCountries ? tripVisitCountries.map(id => countries.find(c => c.id === id)).filter(Boolean) as Country[] : []
-  );
+  const [selectedCountries, setSelectedCountries] = useState<Country[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [continentFilter, setContinentFilter] = useState<string | null>(null);
+  const [daysPerCountry, setDaysPerCountry] = useState<Record<string, number>>({});
   
-  // Filter countries based on search query
-  const filteredCountries = searchQuery
-    ? countries.filter(country => 
+  // Initialize selected countries from tripVisitCountries
+  useEffect(() => {
+    if (tripVisitCountries && tripVisitCountries.length > 0) {
+      const selectedCountryObjects = tripVisitCountries
+        .map(id => countries.find(c => c.id === id))
+        .filter(country => country !== undefined) as Country[];
+      
+      setSelectedCountries(selectedCountryObjects);
+      
+      // Initialize days per country from store or with default values
+      const initialDaysPerCountry: Record<string, number> = {};
+      tripVisitCountries.forEach((countryId, index) => {
+        initialDaysPerCountry[countryId] = daysPerCountryFromStore && daysPerCountryFromStore[countryId] 
+          ? daysPerCountryFromStore[countryId] 
+          : 5; // Default to 5 days instead of 1
+      });
+      
+      setDaysPerCountry(initialDaysPerCountry);
+    }
+    
+    // Auto-set the filter to the start country's region if available
+    if (tripStartPoint?.countryId) {
+      const startCountry = countries.find(c => c.id === tripStartPoint.countryId);
+      if (startCountry) {
+        setContinentFilter(startCountry.regionId);
+      }
+    }
+  }, [tripVisitCountries, countries, tripStartPoint, daysPerCountryFromStore]);
+  
+  // Region translation mapping
+  const regionTranslations: Record<string, string> = {
+    'East Asia': 'מזרח אסיה',
+    'South East Asia': 'דרום מזרח אסיה',
+    'South Asia': 'דרום אסיה',
+    'Middle East': 'המזרח התיכון',
+    'Eastern Europe': 'מזרח אירופה',
+    'Western Europe': 'מערב אירופה',
+    'Northern Europe': 'צפון אירופה',
+    'Southern Europe': 'דרום אירופה',
+    'North America': 'צפון אמריקה',
+    'Central America': 'מרכז אמריקה',
+    'South America': 'דרום אמריקה',
+    'Oceania': 'אוקיאניה',
+    'Africa': 'אפריקה',
+    'Caribbean': 'האיים הקריביים'
+    // Add other regions as needed
+  };
+
+  // Translate region name to Hebrew
+  const translateRegion = (regionId: string): string => {
+    return regionTranslations[regionId] || regionId;
+  };
+  
+  // Get unique continents for filtering
+  const continents = Array.from(new Set(countries.map(country => country.regionId))).sort();
+  
+  // Get the start country's region
+  const startCountryRegion = tripStartPoint?.countryId 
+    ? countries.find(c => c.id === tripStartPoint.countryId)?.regionId 
+    : null;
+  
+  // Filter and sort countries based on search query, continent filter, and region priority
+  const filteredCountries = countries
+    .filter(country => {
+      // Filter by search query
+      const matchesSearch = searchQuery === '' || 
         country.nameHe.includes(searchQuery) || 
-        country.nameEn.toLowerCase().includes(searchQuery.toLowerCase()))
-    : countries;
+        country.nameEn.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      // Filter by continent
+      const matchesContinent = continentFilter === null || country.regionId === continentFilter;
+      
+      // Filter out start country
+      const isNotStartCountry = tripStartPoint ? country.id !== tripStartPoint.countryId : true;
+      
+      return matchesSearch && matchesContinent && isNotStartCountry;
+    })
+    .sort((a, b) => {
+      // First prioritize by same region as start country
+      const aIsSameRegion = a.regionId === startCountryRegion;
+      const bIsSameRegion = b.regionId === startCountryRegion;
+      
+      if (aIsSameRegion && !bIsSameRegion) return -1;
+      if (!aIsSameRegion && bIsSameRegion) return 1;
+      
+      // Then sort by popular
+      if (a.popular && !b.popular) return -1;
+      if (!a.popular && b.popular) return 1;
+      
+      // Then alphabetically
+      return a.nameHe.localeCompare(b.nameHe);
+    });
+  
+  // Group countries by region for display
+  const countryGroups = filteredCountries.reduce<Record<string, Country[]>>((groups, country) => {
+    const regionId = country.regionId;
+    if (!groups[regionId]) {
+      groups[regionId] = [];
+    }
+    groups[regionId].push(country);
+    return groups;
+  }, {});
+  
+  // Order the region groups - start country's region first
+  const orderedRegions = Object.keys(countryGroups).sort((a, b) => {
+    if (a === startCountryRegion) return -1;
+    if (b === startCountryRegion) return 1;
+    return a.localeCompare(b);
+  });
   
   const steps = [
     { id: 1, title: "נקודת התחלה" },
@@ -49,17 +156,44 @@ export default function VisitCountriesScreen() {
   const handleCountryToggle = (country: Country) => {
     if (selectedCountries.some(c => c.id === country.id)) {
       setSelectedCountries(selectedCountries.filter(c => c.id !== country.id));
+      
+      // Remove days count for this country
+      const newDaysPerCountry = { ...daysPerCountry };
+      delete newDaysPerCountry[country.id];
+      setDaysPerCountry(newDaysPerCountry);
     } else {
       setSelectedCountries([...selectedCountries, country]);
+      
+      // Add default days for this country (5 days instead of 1)
+      setDaysPerCountry({ 
+        ...daysPerCountry, 
+        [country.id]: 5 
+      });
     }
   };
   
+  // Add function to change days count
+  const changeDaysCount = (countryId: string, increment: boolean) => {
+    const currentDays = daysPerCountry[countryId] || 1;
+    const newDays = increment ? currentDays + 1 : Math.max(1, currentDays - 1);
+    setDaysPerCountry({ ...daysPerCountry, [countryId]: newDays });
+  };
+  
   const handleNext = () => {
-    // Save selected countries
-    setTripVisitCountries(selectedCountries.map(c => c.id));
-    
-    // Navigate to end point screen
-    router.push('/create-trip/end-point');
+    try {
+      // Save selected countries
+      const countryIds = selectedCountries.map(c => c.id);
+      setTripVisitCountries(countryIds);
+      
+      // Save days per country
+      setStoreDaysPerCountry(daysPerCountry);
+      
+      // Navigate to end point screen
+      router.push('/create-trip/end-point');
+    } catch (error) {
+      console.error('Error saving visit countries:', error);
+      Alert.alert('שגיאה', 'אירעה שגיאה בשמירת המדינות. אנא נסה שנית.');
+    }
   };
   
   const handleBack = () => {
@@ -72,6 +206,15 @@ export default function VisitCountriesScreen() {
     
     // Navigate to end point screen
     router.push('/create-trip/end-point');
+  };
+  
+  const handleClearSearch = () => {
+    setSearchQuery('');
+  };
+
+  const clearFilters = () => {
+    setSearchQuery('');
+    setContinentFilter(null);
   };
 
   // Check if start point is set
@@ -102,33 +245,68 @@ export default function VisitCountriesScreen() {
         headerLeft: () => <BackButton />
       }} />
       
+      <Image 
+        source={{ uri: "https://images.unsplash.com/photo-1496161446026-a535a789705f?q=80&w=1000" }} 
+        style={styles.backgroundImage} 
+        blurRadius={20}
+      />
+      <LinearGradient
+        colors={['rgba(255,255,255,0.85)', 'rgba(255,255,255,0.95)']}
+        style={styles.gradient}
+      />
+      
       <View style={styles.content}>
         <StepIndicator steps={steps} currentStep={2} />
         
-        <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+        <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollViewContent}>
           <Text style={styles.title}>באילו מדינות תרצה לבקר?</Text>
           <Text style={styles.subtitle}>בחר מדינות שתרצה לבקר בהן במהלך הטיול</Text>
           
           {selectedCountries.length > 0 && (
             <View style={styles.selectedCountriesContainer}>
-              <Text style={styles.sectionTitle}>מדינות שנבחרו</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.selectedCountriesScroll}>
-                {selectedCountries.map(country => (
-                  <Pressable 
-                    key={country.id} 
-                    style={styles.selectedCountryChip}
-                    onPress={() => handleCountryToggle(country)}
-                  >
-                    <Image
-                      source={{ uri: country.flagImage || country.image }}
-                      style={styles.chipFlag}
-                      contentFit="cover"
-                    />
-                    <Text style={styles.chipText}>{country.nameHe}</Text>
-                    <X size={16} color={colors.text} />
-                  </Pressable>
-                ))}
-              </ScrollView>
+              <Text style={styles.sectionTitle}>מדינות שנבחרו ({selectedCountries.length})</Text>
+              <FlatList
+                horizontal 
+                showsHorizontalScrollIndicator={false} 
+                style={styles.selectedCountriesScroll}
+                data={selectedCountries}
+                keyExtractor={country => country.id}
+                renderItem={({ item }) => (
+                  <View style={styles.selectedCountryContainer}>
+                    <Pressable 
+                      key={item.id} 
+                      style={styles.selectedCountryChip}
+                      onPress={() => handleCountryToggle(item)}
+                    >
+                      <CountryFlag 
+                        countryCode={item.id} 
+                        size={20}
+                        style={styles.chipFlag}
+                      />
+                      <Text style={styles.chipText}>{item.nameHe}</Text>
+                      <X size={16} color={colors.text} />
+                    </Pressable>
+                    
+                    <View style={styles.daysControlsSmall}>
+                      <TouchableOpacity 
+                        style={styles.daysButtonSmall}
+                        onPress={() => changeDaysCount(item.id, false)}
+                      >
+                        <Minus size={12} color={colors.primary} />
+                      </TouchableOpacity>
+                      
+                      <Text style={styles.daysCountSmall}>{daysPerCountry[item.id] || 1} ימים</Text>
+                      
+                      <TouchableOpacity 
+                        style={styles.daysButtonSmall}
+                        onPress={() => changeDaysCount(item.id, true)}
+                      >
+                        <Plus size={12} color={colors.primary} />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                )}
+              />
             </View>
           )}
           
@@ -140,44 +318,141 @@ export default function VisitCountriesScreen() {
               value={searchQuery}
               onChangeText={setSearchQuery}
               placeholderTextColor={colors.muted}
+              textAlign="right"
             />
+            {searchQuery !== '' && (
+              <TouchableOpacity 
+                style={styles.clearButton} 
+                onPress={handleClearSearch}
+              >
+                <X size={16} color={colors.muted} />
+              </TouchableOpacity>
+            )}
           </View>
           
-          <View style={styles.countriesList}>
-            <Text style={styles.sectionTitle}>בחר מדינות</Text>
-            {filteredCountries
-              .filter(country => country.id !== tripStartPoint.countryId) // Filter out start country
-              .map(country => (
-                <Pressable
-                  key={country.id}
-                  style={[
-                    styles.countryItem,
-                    selectedCountries.some(c => c.id === country.id) && styles.selectedCountryItem
-                  ]}
-                  onPress={() => handleCountryToggle(country)}
+          {/* Continent Filter */}
+          <View style={styles.filterContainer}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <TouchableOpacity 
+                style={[styles.filterChip, continentFilter === null && styles.activeFilterChip]} 
+                onPress={() => setContinentFilter(null)}
+              >
+                <Globe size={16} color={continentFilter === null ? 'white' : colors.primary} />
+                <Text style={[styles.filterChipText, continentFilter === null && styles.activeFilterChipText]}>הכל</Text>
+              </TouchableOpacity>
+              
+              {continents.map(continent => (
+                <TouchableOpacity 
+                  key={continent}
+                  style={[styles.filterChip, continentFilter === continent && styles.activeFilterChip]} 
+                  onPress={() => setContinentFilter(continent)}
                 >
-                  <View style={styles.countryInfo}>
-                    <Text style={styles.countryName}>{country.nameHe}</Text>
-                    <Text style={styles.countryNameEn}>{country.nameEn}</Text>
-                  </View>
-                  <View style={styles.countryRightSection}>
-                    {selectedCountries.some(c => c.id === country.id) ? (
-                      <View style={styles.checkIconContainer}>
-                        <Check size={16} color="white" />
-                      </View>
-                    ) : (
-                      <View style={styles.plusIconContainer}>
-                        <Plus size={16} color={colors.primary} />
-                      </View>
-                    )}
-                    <Image
-                      source={{ uri: country.flagImage || country.image }}
-                      style={styles.countryFlag}
-                      contentFit="cover"
-                    />
-                  </View>
-                </Pressable>
+                  <Text style={[styles.filterChipText, continentFilter === continent && styles.activeFilterChipText]}>
+                    {translateRegion(continent)}
+                  </Text>
+                </TouchableOpacity>
               ))}
+            </ScrollView>
+            
+            {(searchQuery || continentFilter) && (
+              <TouchableOpacity style={styles.clearFiltersButton} onPress={clearFilters}>
+                <Text style={styles.clearFiltersText}>נקה סינון</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+          
+          {/* Countries list - grouped by region */}
+          <View style={styles.countriesList}>
+            {orderedRegions.map(regionId => (
+              <View key={regionId} style={styles.regionSection}>
+                <Text style={styles.regionTitle}>
+                  {translateRegion(regionId)} 
+                  {regionId === startCountryRegion && (
+                    <Text style={styles.startCountryRegionIndicator}> (אזור מדינת המוצא)</Text>
+                  )}
+                </Text>
+                
+                <FlatList
+                  data={countryGroups[regionId]}
+                  renderItem={({ item }) => (
+                    <Pressable
+                      key={item.id}
+                      style={[
+                        styles.countryCard, 
+                        selectedCountries.some(c => c.id === item.id) && styles.selectedCard
+                      ]}
+                      onPress={() => handleCountryToggle(item)}
+                    >
+                      <Image 
+                        source={{ uri: `https://source.unsplash.com/300x200/?${encodeURIComponent(item.nameEn)},landmark,travel` }} 
+                        style={styles.countryImage}
+                        contentFit="cover"
+                        transition={300}
+                        placeholder={{
+                          uri: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?q=80&w=300"
+                        }}
+                      />
+                      <LinearGradient
+                        colors={
+                          selectedCountries.some(c => c.id === item.id)
+                            ? ['rgba(0, 0, 0, 0.6)', 'rgba(0, 60, 120, 0.7)']
+                            : ['rgba(0, 0, 0, 0.3)', 'rgba(0, 0, 0, 0.5)']
+                        }
+                        style={styles.cardGradient}
+                      />
+                      
+                      <View style={styles.countryHeader}>
+                        <View style={styles.flagContainer}>
+                          <CountryFlag countryCode={item.id} size={36} />
+                        </View>
+                        
+                        <View style={styles.countryInfo}>
+                          <Text style={[styles.countryNameHe, { color: 'white' }]}>{item.nameHe}</Text>
+                          <Text style={[styles.countryNameEn, { color: 'rgba(255,255,255,0.8)' }]}>{item.nameEn}</Text>
+                          {selectedCountries.some(c => c.id === item.id) && (
+                            <View style={styles.selectedBadge}>
+                              <Check size={16} color="white" />
+                            </View>
+                          )}
+                        </View>
+                      </View>
+                      
+                      {/* Add days selector for selected countries */}
+                      {selectedCountries.some(c => c.id === item.id) && (
+                        <View style={styles.daysSelector}>
+                          <View style={styles.daysSelectorHeader}>
+                            <Calendar size={16} color="white" />
+                            <Text style={styles.daysSelectorLabel}>מספר ימים:</Text>
+                          </View>
+                          
+                          <View style={styles.daysControls}>
+                            <TouchableOpacity 
+                              style={styles.daysButton}
+                              onPress={() => changeDaysCount(item.id, false)}
+                            >
+                              <Minus size={16} color="white" />
+                            </TouchableOpacity>
+                            
+                            <Text style={styles.daysCount}>{daysPerCountry[item.id] || 1}</Text>
+                            
+                            <TouchableOpacity 
+                              style={styles.daysButton}
+                              onPress={() => changeDaysCount(item.id, true)}
+                            >
+                              <Plus size={16} color="white" />
+                            </TouchableOpacity>
+                          </View>
+                        </View>
+                      )}
+                    </Pressable>
+                  )}
+                  keyExtractor={item => item.id}
+                  horizontal={true}
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.regionCountriesList}
+                />
+              </View>
+            ))}
           </View>
         </ScrollView>
         
@@ -189,7 +464,7 @@ export default function VisitCountriesScreen() {
             </Pressable>
             
             <Pressable 
-              style={styles.nextButton}
+              style={[styles.nextButton, selectedCountries.length === 0 && styles.disabledButton]}
               onPress={handleNext}
               disabled={isLoading}
             >
@@ -218,194 +493,272 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  content: {
-    flex: 1,
-    padding: 16,
+  backgroundImage: {
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
+  },
+  gradient: {
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
   },
   scrollView: {
     flex: 1,
   },
-  scrollContent: {
-    paddingBottom: 24,
+  scrollViewContent: {
+    flexGrow: 1,
+    padding: 20,
+    paddingBottom: 40,
   },
-  title: {
-    fontSize: 24,
+  content: {
+    flex: 1,
+  },
+  sectionContainer: {
+    marginBottom: 24,
+  },
+  sectionTitle: {
+    fontSize: 20,
     fontWeight: 'bold',
     color: colors.text,
-    marginBottom: 8,
-    textAlign: 'right',
-  },
-  subtitle: {
-    fontSize: 16,
-    color: colors.muted,
     marginBottom: 16,
     textAlign: 'right',
-  },
-  selectedCountriesContainer: {
-    marginBottom: 16,
-  },
-  selectedCountriesScroll: {
-    flexDirection: 'row',
-    marginBottom: 8,
-  },
-  selectedCountryChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.card,
-    borderRadius: 20,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    marginRight: 8,
-    borderWidth: 1,
-    borderColor: colors.primary,
-  },
-  chipFlag: {
-    width: 20,
-    height: 15,
-    borderRadius: 2,
-    marginRight: 6,
-  },
-  chipText: {
-    fontSize: 14,
-    color: colors.text,
-    marginRight: 6,
+    alignSelf: 'flex-end',
+    textShadowColor: 'rgba(255, 255, 255, 0.75)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   searchContainer: {
-    flexDirection: 'row',
+    flexDirection: 'row-reverse',
     alignItems: 'center',
-    backgroundColor: colors.card,
-    borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 16,
     paddingHorizontal: 12,
     marginBottom: 16,
+    height: 50,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   searchIcon: {
-    marginLeft: 8,
+    marginRight: 8,
+  },
+  clearSearchButton: {
+    padding: 8,
   },
   searchInput: {
     flex: 1,
-    height: 48,
+    height: 50,
     color: colors.text,
-    textAlign: 'right',
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: colors.text,
-    marginBottom: 12,
-    textAlign: 'right',
-  },
-  countriesList: {
-    marginBottom: 16,
-  },
-  countryItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    backgroundColor: colors.card,
-    borderRadius: 8,
-    marginBottom: 8,
-  },
-  selectedCountryItem: {
-    borderColor: colors.primary,
-    borderWidth: 1,
-    backgroundColor: `${colors.primary}10`,
-  },
-  countryInfo: {
-    flex: 1,
-    alignItems: 'flex-end',
-  },
-  countryName: {
     fontSize: 16,
-    fontWeight: '500',
-    color: colors.text,
     textAlign: 'right',
   },
-  countryNameEn: {
-    fontSize: 14,
-    color: colors.muted,
-    textAlign: 'right',
-  },
-  countryRightSection: {
-    flexDirection: 'row',
+  infoContainer: {
+    backgroundColor: 'rgba(0, 114, 178, 0.1)',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 16,
+    flexDirection: 'row-reverse',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(0, 114, 178, 0.2)',
   },
-  countryFlag: {
-    width: 40,
-    height: 30,
-    borderRadius: 4,
+  infoIcon: {
     marginLeft: 12,
   },
-  checkIconContainer: {
+  infoText: {
+    flex: 1,
+    fontSize: 14,
+    color: colors.text,
+    textAlign: 'right',
+  },
+  countriesContainer: {
+    flexDirection: 'row-reverse',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+  countryCard: {
+    width: '48%',
+    aspectRatio: 1.5,
+    borderRadius: 16,
+    marginBottom: 12,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  countryCardGradient: {
+    flex: 1,
+    padding: 12,
+    justifyContent: 'space-between',
+  },
+  countrySelectedOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 114, 178, 0.3)',
+    borderColor: colors.primary,
+    borderWidth: 2,
+    borderRadius: 16,
+  },
+  countryCardImage: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  countryHeader: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  flagContainer: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: 'white',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 3,
+  },
+  selectedCheckmark: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
     width: 24,
     height: 24,
     borderRadius: 12,
     backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.3,
+    shadowRadius: 1,
+    elevation: 2,
   },
-  plusIconContainer: {
+  countryInfo: {
+    marginTop: 'auto',
+  },
+  countryNameHe: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: 'white',
+    textAlign: 'right',
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  countryName: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.8)',
+    textAlign: 'right',
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  countryDaysContainer: {
+    marginTop: 8,
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    borderRadius: 16,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    alignSelf: 'flex-end',
+  },
+  daysControls: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+  },
+  daysButton: {
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: colors.background,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 8,
-    borderWidth: 1,
-    borderColor: colors.primary,
+    marginHorizontal: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 1,
+    elevation: 1,
   },
-  footer: {
-    marginTop: 16,
+  daysText: {
+    fontSize: 14,
+    color: 'white',
+    marginHorizontal: 6,
+    fontWeight: '500',
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 1,
+  },
+  selectionSummary: {
+    flexDirection: 'row-reverse',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  selectionSummaryText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: colors.text,
   },
   buttonContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 12,
+    marginTop: 'auto',
+    marginBottom: 16,
   },
-  backButton: {
-    backgroundColor: colors.card,
-    borderRadius: 12,
-    padding: 16,
-    flexDirection: 'row',
+  button: {
+    flex: 1,
+    height: 56,
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginHorizontal: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  buttonGradient: {
+    flex: 1,
+    flexDirection: 'row-reverse',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  buttonGradientSecondary: {
     flex: 1,
-    marginRight: 8,
+    flexDirection: 'row-reverse',
+    justifyContent: 'center',
+    alignItems: 'center',
     borderWidth: 1,
     borderColor: colors.primary,
   },
-  backButtonText: {
-    color: colors.primary,
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginLeft: 8,
-  },
-  nextButton: {
-    backgroundColor: colors.primary,
-    borderRadius: 12,
-    padding: 16,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    flex: 1,
-    marginLeft: 8,
-  },
-  nextButtonText: {
+  buttonTextPrimary: {
     color: 'white',
     fontSize: 16,
     fontWeight: 'bold',
-    marginRight: 8,
   },
-  skipButton: {
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  skipButtonText: {
+  buttonTextSecondary: {
     color: colors.primary,
-    fontSize: 14,
+    fontSize: 16,
+    fontWeight: 'bold',
   },
   errorContainer: {
     flex: 1,
@@ -441,5 +794,238 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  noResultsContainer: {
+    alignItems: 'center',
+    padding: 20,
+  },
+  noResultsText: {
+    fontSize: 16,
+    color: colors.muted,
+    marginBottom: 12,
+  },
+  daysSelector: {
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+  },
+  daysSelectorHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  daysSelectorLabel: {
+    fontSize: 14,
+    color: 'white',
+    marginRight: 8,
+  },
+  daysControlsSmall: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 12,
+    marginTop: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+  },
+  daysButtonSmall: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: 'white',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.primaryLight,
+  },
+  daysCountSmall: {
+    fontSize: 12,
+    color: colors.text,
+    marginHorizontal: 8,
+    minWidth: 30,
+    textAlign: 'center',
+  },
+  filterContainer: {
+    flexDirection: 'column',
+    marginBottom: 16,
+  },
+  filterChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    borderRadius: 20,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: colors.primary,
+  },
+  activeFilterChip: {
+    backgroundColor: colors.primary,
+  },
+  filterChipText: {
+    fontSize: 14,
+    color: colors.primary,
+    marginLeft: 4,
+  },
+  activeFilterChipText: {
+    color: 'white',
+  },
+  clearFiltersButton: {
+    alignSelf: 'flex-end',
+    padding: 8,
+    marginTop: 8,
+  },
+  clearFiltersText: {
+    fontSize: 14,
+    color: colors.primary,
+    textDecorationLine: 'underline',
+  },
+  countriesList: {
+    marginBottom: 16,
+  },
+  regionSection: {
+    marginBottom: 24,
+  },
+  regionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: colors.text,
+    marginBottom: 12,
+    textAlign: 'right',
+  },
+  startCountryRegionIndicator: {
+    fontWeight: 'normal',
+    fontSize: 14,
+    color: colors.primary,
+  },
+  regionCountriesList: {
+    paddingVertical: 12,
+    paddingBottom: 16,
+  },
+  countryImage: {
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
+  },
+  cardGradient: {
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
+  },
+  selectedBadge: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    backgroundColor: colors.primary,
+    borderRadius: 12,
+    width: 24,
+    height: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.3,
+    shadowRadius: 1,
+    elevation: 2,
+  },
+  footer: {
+    marginTop: 16,
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  backButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 12,
+    padding: 16,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    flex: 1,
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: colors.primary,
+  },
+  backButtonText: {
+    color: colors.primary,
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginLeft: 8,
+  },
+  nextButton: {
+    backgroundColor: colors.primary,
+    borderRadius: 12,
+    padding: 16,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    flex: 1,
+    marginLeft: 8,
+  },
+  disabledButton: {
+    backgroundColor: 'rgba(0, 114, 178, 0.5)',
+  },
+  nextButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginRight: 8,
+  },
+  skipButton: {
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  skipButtonText: {
+    color: colors.primary,
+    fontSize: 14,
+  },
+  selectedCountriesContainer: {
+    marginBottom: 16,
+  },
+  selectedCountriesScroll: {
+    flexDirection: 'row',
+    marginBottom: 8,
+  },
+  selectedCountryContainer: {
+    marginRight: 8,
+    alignItems: 'center',
+  },
+  selectedCountryChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.card,
+    borderRadius: 20,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: colors.primary,
+  },
+  chipFlag: {
+    width: 20,
+    height: 15,
+    borderRadius: 2,
+    marginRight: 6,
+  },
+  chipText: {
+    fontSize: 14,
+    color: colors.text,
+    marginRight: 6,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: colors.text,
+    marginBottom: 8,
+    textAlign: 'right',
+  },
+  subtitle: {
+    fontSize: 16,
+    color: colors.muted,
+    marginBottom: 16,
+    textAlign: 'right',
   },
 });

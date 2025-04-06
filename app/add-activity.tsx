@@ -101,11 +101,7 @@ export default function AddActivityScreen() {
     <SafeAreaView style={styles.container}>
       <Stack.Screen options={{ 
         title: "הוסף פעילות",
-        headerRight: () => (
-          <Pressable onPress={handleCreateActivity} style={styles.saveButton}>
-            <Check size={24} color={colors.primary} />
-          </Pressable>
-        )
+        headerLeft: () => <BackButton />,
       }} />
       
       <ScrollView contentContainerStyle={styles.scrollContent}>

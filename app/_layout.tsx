@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { Slot, useRouter, useSegments, Stack } from 'expo-router';
 import { useProfileStore } from '@/store/profile-store';
 import { I18nManager, StyleSheet } from 'react-native';
-import HeaderRight from '@/components/HeaderRight';
+// import HeaderRight from '@/components/HeaderRight';
 import colors from '@/constants/colors';
 
 // Force RTL layout for Hebrew
@@ -15,36 +15,39 @@ export default function RootLayout() {
   const router = useRouter();
 
   useEffect(() => {
-    // Skip redirection in development mode when segments are empty
-    if (!segments || segments.length <= 0) return;
+    // Determine if the current route is within the tabs group
+    const inTabsGroup = segments[0] === '(tabs)';
     
-    // Only redirect if we're on index and not already redirecting to onboarding/profile-setup
-    if (segments[0] !== 'onboarding' && segments[0] !== 'profile-setup') {
-      // If user hasn't seen onboarding, redirect to onboarding
-      if (!profile.hasSeenOnboarding) {
-        router.replace('/onboarding');
+    // Skip redirection logic if already in tabs or in specific setup routes
+    if (inTabsGroup || segments[0] === 'onboarding' || segments[0] === 'profile-setup') {
         return;
-      }
-      
-      // If user has seen onboarding but hasn't completed profile setup, redirect to profile setup
-      if (profile.hasSeenOnboarding && !profile.isProfileComplete) {
-        router.replace('/profile-setup');
-        return;
-      }
     }
-  }, [profile.hasSeenOnboarding, profile.isProfileComplete, segments]);
+    
+    // Existing redirection logic
+    if (!profile.hasSeenOnboarding) {
+      router.replace('/onboarding');
+      return;
+    }
+    if (!profile.isProfileComplete) {
+      router.replace('/profile-setup');
+      return;
+    }
+    
+    // If onboarding and profile are complete, but we're somehow not in tabs (e.g., at root '/'),
+    // redirect to the default tab screen.
+    if (segments.length === 0 || segments[0] === '') { // Check for root or empty segments
+        router.replace('/(tabs)/index');
+    }
 
-  // Determine initial route
-  const initialRoute = profile.hasSeenOnboarding 
-    ? (profile.isProfileComplete ? 'index' : 'profile-setup') 
-    : 'onboarding';
+  }, [profile.hasSeenOnboarding, profile.isProfileComplete, segments, router]);
+
+  // Initial route logic might need adjustment depending on exact flow desired
+  // For now, let Stack handle initial route based on navigation state after redirects
 
   return (
     <Stack
-      initialRouteName={initialRoute}
       screenOptions={{
         headerShown: true,
-        headerRight: () => <HeaderRight />,
         headerStyle: {
           backgroundColor: colors.background,
         },
@@ -52,23 +55,14 @@ export default function RootLayout() {
         headerTitleAlign: 'center',
       }}
     >
-      <Stack.Screen name="index" options={{ 
-        headerTitle: "מדריך טיולים",
+      {/* The Tab navigator group */}
+      <Stack.Screen name="(tabs)" options={{ 
+        headerShown: false, // Let the tab navigator manage its own headers/titles if needed
       }} />
+      
+      {/* Keep other Stack screens outside the tabs */}
       <Stack.Screen name="search" options={{ 
         headerTitle: "חיפוש",
-      }} />
-      <Stack.Screen name="trips" options={{ 
-        headerTitle: "הטיולים שלי",
-      }} />
-      <Stack.Screen name="chat" options={{ 
-        headerTitle: "עוזר טיולים",
-      }} />
-      <Stack.Screen name="favorites" options={{ 
-        headerTitle: "המועדפים שלי",
-      }} />
-      <Stack.Screen name="profile" options={{ 
-        headerTitle: "הפרופיל שלי",
       }} />
       <Stack.Screen name="onboarding" options={{ headerShown: false }} />
       <Stack.Screen name="profile-setup" options={{ headerShown: false }} />
@@ -111,6 +105,9 @@ export default function RootLayout() {
       <Stack.Screen name="create-trip" options={{ 
         headerShown: false,
       }} />
+       {/* Ensure modal and not-found are defined if used elsewhere */}
+      <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+      <Stack.Screen name="+not-found" />
     </Stack>
   );
 }

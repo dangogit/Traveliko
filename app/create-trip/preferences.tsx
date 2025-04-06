@@ -164,7 +164,7 @@ export default function TripPreferencesScreen() {
         style={styles.gradient}
       />
       
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView contentContainerStyle={styles.scrollViewContent}>
         <StepIndicator steps={steps} currentStep={4} />
         
         {profile.isProfileComplete && (
@@ -348,9 +348,224 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
-  scrollContent: {
+  scrollView: {
+    flex: 1,
+  },
+  scrollViewContent: {
+    flexGrow: 1,
     padding: 20,
     paddingBottom: 40,
+  },
+  content: {
+    flex: 1,
+  },
+  sectionContainer: {
+    marginBottom: 24,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: colors.text,
+    marginBottom: 16,
+    textAlign: 'right',
+    alignSelf: 'flex-end',
+    textShadowColor: 'rgba(255, 255, 255, 0.75)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  optionsContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  optionRow: {
+    flexDirection: 'row-reverse',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0, 114, 178, 0.1)',
+  },
+  lastOptionRow: {
+    borderBottomWidth: 0,
+    paddingBottom: 0,
+  },
+  optionIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0, 114, 178, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 12,
+  },
+  optionLabel: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: colors.text,
+    flex: 1,
+    textAlign: 'right',
+  },
+  optionActive: {
+    backgroundColor: colors.primary, 
+  },
+  optionTextActive: {
+    color: 'white',
+    fontWeight: 'bold',
+  },
+  checkboxContainer: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    paddingVertical: 10,
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 10,
+  },
+  checkboxChecked: {
+    backgroundColor: colors.primary,
+  },
+  checkboxLabel: {
+    fontSize: 16,
+    color: colors.text,
+    flex: 1,
+    textAlign: 'right',
+  },
+  budgetButtonsContainer: {
+    flexDirection: 'row-reverse',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  budgetButton: {
+    flex: 1,
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    marginHorizontal: 5,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+  },
+  budgetButtonActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  budgetButtonText: {
+    color: colors.text,
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  budgetButtonTextActive: {
+    color: 'white',
+    fontWeight: 'bold',
+  },
+  travelerTypeContainer: {
+    marginBottom: 16,
+  },
+  travelerTypeRow: {
+    flexDirection: 'row-reverse',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  travelerTypeButton: {
+    width: '48%',
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 8,
+    marginBottom: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderWidth: 1,
+    borderColor: colors.border,
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  travelerTypeButtonActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  travelerTypeIcon: {
+    marginLeft: 8,
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0, 114, 178, 0.1)',
+  },
+  travelerTypeIconActive: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  travelerTypeText: {
+    color: colors.text,
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  travelerTypeTextActive: {
+    color: 'white',
+    fontWeight: 'bold',
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 'auto',
+    marginBottom: 16,
+  },
+  button: {
+    flex: 1,
+    height: 56,
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginHorizontal: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  buttonGradient: {
+    flex: 1,
+    flexDirection: 'row-reverse',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  buttonGradientSecondary: {
+    flex: 1,
+    flexDirection: 'row-reverse',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.primary,
+  },
+  buttonTextPrimary: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  buttonTextSecondary: {
+    color: colors.primary,
+    fontSize: 16,
+    fontWeight: 'bold',
   },
   profileToggleContainer: {
     flexDirection: 'row',
@@ -371,27 +586,10 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontWeight: '500',
   },
-  sectionContainer: {
-    marginBottom: 24,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    borderRadius: 16,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 8,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: colors.text,
-    marginLeft: 8,
   },
   sectionDescription: {
     fontSize: 14,
@@ -448,11 +646,6 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontSize: 14,
     fontWeight: 'bold',
-  },
-  buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 24,
   },
   backButton: {
     backgroundColor: 'rgba(255, 255, 255, 0.9)',

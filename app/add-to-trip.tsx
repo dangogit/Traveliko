@@ -15,6 +15,7 @@ import { useTravelStore } from '@/store/travel-store';
 import colors from '@/constants/colors';
 import { Calendar, MapPin, Check } from 'lucide-react-native';
 import EmptyState from '@/components/EmptyState';
+import BackButton from '@/components/BackButton';
 
 export default function AddToTripScreen() {
   const { locationId, countryId } = useLocalSearchParams<{ locationId?: string, countryId?: string }>();
@@ -160,11 +161,7 @@ export default function AddToTripScreen() {
     <SafeAreaView style={styles.container}>
       <Stack.Screen options={{ 
         title: "הוסף לטיול",
-        headerRight: () => (
-          <Pressable onPress={handleAddToTrip} style={styles.addButton}>
-            <Check size={24} color={colors.primary} />
-          </Pressable>
-        )
+        headerLeft: () => <BackButton />,
       }} />
       
       <ScrollView contentContainerStyle={styles.scrollContent}>

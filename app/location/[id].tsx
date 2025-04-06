@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, ScrollView, SafeAreaView, Pressable } from 'react-native';
-import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
+import { useLocalSearchParams, Stack, useRouter, useNavigation } from 'expo-router';
 import { useTravelStore } from '@/store/travel-store';
 import { useProfileStore } from '@/store/profile-store';
 import { useWeatherStore } from '@/store/weather-store';
@@ -13,11 +13,11 @@ import { MapPin, Cloud, CloudSun, CloudRain, CloudSnow, Sun } from 'lucide-react
 import { Season } from '@/types/travel';
 import { useTripStore } from '@/store/trip-store';
 import BackButton from '@/components/BackButton';
-import HeaderRight from '@/components/HeaderRight';
 
 export default function LocationScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const navigation = useNavigation();
   const [activeTab, setActiveTab] = useState('all');
   const { getLocationById, getRecommendationsByLocation, getCountryById } = useTravelStore();
   const { profile } = useProfileStore();
@@ -71,13 +71,20 @@ export default function LocationScreen() {
     });
   };
 
+  useEffect(() => {
+    if (location) {
+      navigation.setOptions({
+        title: location.name,
+      });
+    }
+  }, [navigation, location]);
+
   if (!location) {
     return (
       <SafeAreaView style={styles.container}>
         <Stack.Screen options={{ 
           title: "מיקום לא נמצא",
           headerLeft: () => <BackButton />,
-          headerRight: () => <HeaderRight />
         }} />
         <EmptyState 
           title="מיקום לא נמצא"
@@ -93,7 +100,6 @@ export default function LocationScreen() {
       <Stack.Screen options={{ 
         title: location.nameHe,
         headerLeft: () => <BackButton />,
-        headerRight: () => <HeaderRight />
       }} />
       
       <ScrollView contentContainerStyle={styles.scrollContent}>

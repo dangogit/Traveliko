@@ -88,6 +88,7 @@ export interface TripEndPoint {
   countryName: string;
   cityName: string;
   date: string | Date;
+  dateUnknown?: boolean;
   locationId?: string;
   name?: string; // Display name
 }

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   StyleSheet, 
   Text, 
@@ -22,6 +22,8 @@ import {
 } from 'lucide-react-native';
 import TripActivityItem from '@/components/TripActivityItem';
 import EmptyState from '@/components/EmptyState';
+import { useNavigation } from '@react-navigation/native';
+import BackButton from '@/components/BackButton';
 
 export default function TripDayDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -33,6 +35,7 @@ export default function TripDayDetailScreen() {
     getTripById
   } = useTripStore();
   const { getLocationById } = useTravelStore();
+  const navigation = useNavigation();
   
   const tripDay = useTripStore(state => 
     state.tripDays.find(day => day.id === id)
@@ -109,6 +112,15 @@ export default function TripDayDetailScreen() {
       ]
     );
   };
+  
+  useEffect(() => {
+    if (tripDay) {
+      navigation.setOptions({
+        title: `יום ${tripDay.dayNumber}: ${tripDay.title || 'פרטי יום'}`,
+        headerLeft: () => <BackButton />,
+      });
+    }
+  }, [navigation, tripDay, trip]);
   
   if (!tripDay || !trip) {
     return (

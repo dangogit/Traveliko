@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   StyleSheet, 
   Text, 
@@ -8,7 +8,7 @@ import {
   Pressable,
   Platform
 } from 'react-native';
-import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
+import { useLocalSearchParams, Stack, useRouter, useNavigation } from 'expo-router';
 import { useTravelStore } from '@/store/travel-store';
 import colors from '@/constants/colors';
 import { 
@@ -27,11 +27,15 @@ import LocationCard from '@/components/LocationCard';
 import CountryAppCard from '@/components/CountryAppCard';
 import { CountryApp } from '@/types/travel';
 import BackButton from '@/components/BackButton';
-import HeaderRight from '@/components/HeaderRight';
+import EmptyState from '@/components/EmptyState';
+import FilterTabs from '@/components/FilterTabs';
+import RegionCard from '@/components/RegionCard';
+import RecommendationCard from '@/components/RecommendationCard';
 
 export default function CountryDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const navigation = useNavigation();
   const { 
     getCountryById, 
     getLocationsByCountry, 
@@ -92,13 +96,21 @@ export default function CountryDetailScreen() {
     router.push('/create-trip/start-point');
   };
   
+  useEffect(() => {
+    if (country) {
+      navigation.setOptions({
+        title: country.nameHe,
+        headerLeft: () => <BackButton />,
+      });
+    }
+  }, [navigation, country]);
+  
   if (!country) {
     return (
       <SafeAreaView style={styles.container}>
         <Stack.Screen options={{ 
           title: "מדינה לא נמצאה",
           headerLeft: () => <BackButton />,
-          headerRight: () => <HeaderRight />
         }} />
         <Text>Country not found</Text>
       </SafeAreaView>
@@ -110,21 +122,6 @@ export default function CountryDetailScreen() {
       <Stack.Screen options={{ 
         title: country.nameHe,
         headerLeft: () => <BackButton />,
-        headerRight: () => (
-          <View style={styles.headerActions}>
-            <Pressable onPress={handleToggleFavorite} style={styles.headerButton}>
-              <Heart 
-                size={24} 
-                color={isFavorited ? colors.notification : colors.text} 
-                fill={isFavorited ? colors.notification : 'none'} 
-              />
-            </Pressable>
-            <Pressable onPress={handleShare} style={styles.headerButton}>
-              <Share size={24} color={colors.text} />
-            </Pressable>
-            <HeaderRight />
-          </View>
-        )
       }} />
       
       <ScrollView contentContainerStyle={styles.scrollContent}>

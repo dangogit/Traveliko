@@ -212,11 +212,7 @@ export default function AddTripDayScreen() {
     <SafeAreaView style={styles.container}>
       <Stack.Screen options={{ 
         title: "הוסף יום לטיול",
-        headerRight: () => (
-          <Pressable onPress={handleCreateDay} style={styles.saveButton}>
-            <Check size={24} color={colors.primary} />
-          </Pressable>
-        )
+        headerLeft: () => <BackButton />,
       }} />
       
       <ScrollView contentContainerStyle={styles.scrollContent}>

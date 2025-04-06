@@ -14,6 +14,7 @@ import { useTravelStore } from '@/store/travel-store';
 import colors from '@/constants/colors';
 import { Search, MapPin, Check } from 'lucide-react-native';
 import { Location } from '@/types/travel';
+import { BackButton } from '@/components/BackButton';
 
 export default function SelectLocationScreen() {
   const { countryId, tripId, date } = useLocalSearchParams<{ 
@@ -54,13 +55,7 @@ export default function SelectLocationScreen() {
     <SafeAreaView style={styles.container}>
       <Stack.Screen options={{ 
         title: "בחר מיקום",
-        headerRight: () => (
-          selectedLocationId ? (
-            <Pressable onPress={handleAddLocation} style={styles.addButton}>
-              <Check size={24} color={colors.primary} />
-            </Pressable>
-          ) : null
-        )
+        headerLeft: () => <BackButton />,
       }} />
       
       <ScrollView contentContainerStyle={styles.scrollContent}>

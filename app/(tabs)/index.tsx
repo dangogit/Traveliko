@@ -63,7 +63,10 @@ export default function HomeScreen() {
 
   const handleSearch = () => {
     if (searchQuery.trim()) {
-      router.push(`/search?query=${encodeURIComponent(searchQuery)}`);
+      router.push({
+        pathname: '/search',
+        params: { query: searchQuery }
+      });
     }
   };
 
@@ -119,28 +122,52 @@ export default function HomeScreen() {
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.quickActionsContent}
           >
-            <Pressable style={styles.actionItem} onPress={() => router.push('/trips')}>
+            <Pressable 
+              style={styles.actionItem} 
+              onPress={() => {
+                console.log("Navigating to trips");
+                router.push("/trips");
+              }}
+            >
               <View style={[styles.actionIcon, {backgroundColor: '#D0F5FD'}]}>
                 <CalendarDays size={24} color="#0693E3" />
               </View>
               <Text style={styles.actionText}>טיולים שלי</Text>
             </Pressable>
             
-            <Pressable style={styles.actionItem} onPress={() => router.push('/search?filter=countries')}>
+            <Pressable 
+              style={styles.actionItem} 
+              onPress={() => {
+                console.log("Navigating to countries search");
+                router.push("/search?filter=countries");
+              }}
+            >
               <View style={[styles.actionIcon, {backgroundColor: '#FFF5D0'}]}>
                 <Globe size={24} color="#F9A826" />
               </View>
               <Text style={styles.actionText}>מדינות</Text>
             </Pressable>
             
-            <Pressable style={styles.actionItem} onPress={() => router.push('/search?filter=regions')}>
+            <Pressable 
+              style={styles.actionItem} 
+              onPress={() => {
+                console.log("Navigating to regions search");
+                router.push("/search?filter=regions");
+              }}
+            >
               <View style={[styles.actionIcon, {backgroundColor: '#EBFBEE'}]}>
                 <Compass size={24} color="#31B057" />
               </View>
               <Text style={styles.actionText}>אזורים</Text>
             </Pressable>
             
-            <Pressable style={styles.actionItem} onPress={() => router.push('/transportation')}>
+            <Pressable 
+              style={styles.actionItem} 
+              onPress={() => {
+                console.log("Navigating to transportation");
+                router.push("/transportation");
+              }}
+            >
               <View style={[styles.actionIcon, {backgroundColor: '#F5E1FF'}]}>
                 <PlaneTakeoff size={24} color="#9C27B0" />
               </View>
@@ -154,7 +181,10 @@ export default function HomeScreen() {
           <View style={styles.sectionHeader}>
             <Pressable 
               style={styles.seeAllButton}
-              onPress={() => router.push('/search?filter=countries')}
+              onPress={() => {
+                console.log("Navigating to all countries");
+                router.push("/search?filter=countries");
+              }}
             >
               <Text style={styles.seeAllText}>הכל</Text>
             </Pressable>
@@ -173,7 +203,10 @@ export default function HomeScreen() {
               <Pressable 
                 key={country.id}
                 style={styles.countryCard}
-                onPress={() => router.push(`/country/${country.id}`)}
+                onPress={() => {
+                  console.log(`Navigating to country: ${country.id}`);
+                  router.push(`/country/${country.id}`);
+                }}
               >
                 <Image
                   source={{ uri: country.image }}
@@ -218,140 +251,128 @@ const styles = StyleSheet.create({
   },
   heroGradient: {
     position: 'absolute',
-    top: 0,
     left: 0,
     right: 0,
     bottom: 0,
+    height: '50%',
   },
   heroContent: {
     position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
+    bottom: 30,
+    left: 20,
+    right: 20,
+    alignItems: 'flex-end', // Align content to the right for RTL
   },
   welcomeText: {
     fontSize: 18,
-    fontWeight: '600',
     color: 'rgba(255,255,255,0.9)',
     marginBottom: 8,
+    fontFamily: 'System', // Choose appropriate Hebrew font if needed
   },
   heroTitle: {
-    fontSize: 42,
+    fontSize: 36,
     fontWeight: 'bold',
     color: 'white',
-    marginBottom: 16,
-    textAlign: 'center',
-    textShadowColor: 'rgba(0, 0, 0, 0.3)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
+    marginBottom: 8,
+    textAlign: 'right',
+    fontFamily: 'System', // Choose appropriate Hebrew font if needed
   },
   heroSubtitle: {
-    fontSize: 18,
-    color: 'white',
-    marginBottom: 32,
-    textAlign: 'center',
-    opacity: 0.9,
+    fontSize: 16,
+    color: 'rgba(255,255,255,0.8)',
+    marginBottom: 24,
+    textAlign: 'right',
+    fontFamily: 'System', // Choose appropriate Hebrew font if needed
   },
   searchContainer: {
     width: '100%',
-    paddingHorizontal: 20,
+    marginTop: 16, // Added margin top for better spacing
   },
   searchBar: {
-    borderRadius: 12,
+    borderRadius: 25,
     overflow: 'hidden',
   },
   searchInputContainer: {
-    flexDirection: 'row',
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    flexDirection: 'row-reverse', // Adjusted for RTL
+    alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.2)',
   },
   searchIcon: {
-    marginLeft: 8,
+    marginLeft: 8, // Adjusted margin for RTL
   },
   searchInput: {
     flex: 1,
-    color: 'white',
     fontSize: 16,
-    padding: 0,
-    textAlign: 'right',
-    writingDirection: 'rtl',
+    color: 'white',
+    height: '100%', // Ensure input fills height
   },
   quickActionsContainer: {
-    marginTop: -40,
-    zIndex: 10,
-    marginBottom: 24,
+    marginTop: -40, // Pull actions up over the hero image slightly
+    paddingBottom: 24,
   },
   quickActionsContent: {
     paddingHorizontal: 16,
-    paddingBottom: 8,
-    gap: 16,
+    gap: 12,
   },
   actionItem: {
     alignItems: 'center',
-    width: 80,
-  },
-  actionIcon: {
-    width: 60,
-    height: 60,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 8,
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 12,
+    width: 90, // Fixed width for consistency
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 2,
+    elevation: 3,
+  },
+  actionIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
   },
   actionText: {
-    fontSize: 14,
-    color: colors.text,
+    fontSize: 13,
     fontWeight: '500',
+    color: colors.textSecondary,
+    textAlign: 'center',
   },
   sectionContainer: {
-    marginBottom: 24,
+    marginTop: 16,
+    paddingHorizontal: 16,
   },
   sectionHeader: {
-    flexDirection: 'row-reverse',
+    flexDirection: 'row-reverse', // Adjusted for RTL
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
     marginBottom: 16,
   },
   sectionTitle: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: 'bold',
     color: colors.text,
   },
-  seeAllButton: {
-    flexDirection: 'row-reverse',
-    alignItems: 'center',
-  },
+  seeAllButton: {},
   seeAllText: {
+    fontSize: 14,
     color: colors.primary,
     fontWeight: '500',
   },
   horizontalScrollContent: {
-    paddingHorizontal: 16,
-    paddingBottom: 8,
+    paddingRight: 16, // Add padding to the start (right in RTL)
     gap: 16,
   },
   countryCard: {
     width: cardWidth,
     height: 200,
-    borderRadius: 20,
+    borderRadius: 16,
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 5,
+    position: 'relative',
   },
   countryImage: {
     width: '100%',
@@ -359,40 +380,33 @@ const styles = StyleSheet.create({
   },
   cardGradient: {
     position: 'absolute',
-    bottom: 0,
     left: 0,
     right: 0,
-    height: 100,
+    bottom: 0,
+    height: '50%',
   },
   countryContent: {
     position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    padding: 16,
+    bottom: 12,
+    right: 12, // Adjusted for RTL
+    left: 12,
+    alignItems: 'flex-end', // Align text to the right
   },
   countryName: {
-    fontSize: 24,
+    fontSize: 18,
     fontWeight: 'bold',
     color: 'white',
-    marginBottom: 8,
-    textAlign: 'right',
-    textShadowColor: 'rgba(0, 0, 0, 0.5)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
+    marginBottom: 4,
   },
   locationInfo: {
-    flexDirection: 'row-reverse',
+    flexDirection: 'row-reverse', // Adjusted for RTL
     alignItems: 'center',
-    justifyContent: 'flex-end',
-  },
-  locationCount: {
-    color: 'white',
-    fontSize: 14,
-    marginLeft: 4,
-    opacity: 0.9,
   },
   locationIcon: {
-    marginRight: 4,
+    marginLeft: 4, // Adjusted margin for RTL
   },
-});
+  locationCount: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.9)',
+  },
+}); 

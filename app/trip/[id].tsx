@@ -24,7 +24,6 @@ import {
 import TripDayCard from '@/components/TripDayCard';
 import EmptyState from '@/components/EmptyState';
 import BackButton from '@/components/BackButton';
-import HeaderRight from '@/components/HeaderRight';
 
 export default function TripDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -136,17 +135,6 @@ export default function TripDetailScreen() {
       <Stack.Screen options={{ 
         title: trip.name,
         headerLeft: () => <BackButton />,
-        headerRight: () => (
-          <View style={styles.headerActions}>
-            <Pressable onPress={handleEditTrip} style={styles.headerButton}>
-              <Edit3 size={20} color={colors.primary} />
-            </Pressable>
-            <Pressable onPress={handleDeleteTrip} style={styles.headerButton}>
-              <Trash2 size={20} color={colors.notification} />
-            </Pressable>
-            <HeaderRight />
-          </View>
-        )
       }} />
       
       <ScrollView contentContainerStyle={styles.scrollContent}>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   StyleSheet, 
   Text, 
@@ -13,13 +13,14 @@ import {
   I18nManager,
   ActivityIndicator,
   FlatList,
-  Image
+  Image,
+  Platform
 } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { useTripStore } from '@/store/trip-store';
 import { useTravelStore } from '@/store/travel-store';
 import colors from '@/constants/colors';
-import { Calendar, MapPin, ArrowRight, ChevronDown, X, Search, Check, ArrowLeft } from 'lucide-react-native';
+import { Calendar, MapPin, ArrowRight, ChevronDown, X, Search, Check, ArrowLeft, Plus, Minus } from 'lucide-react-native';
 import StepIndicator from '@/components/StepIndicator';
 import BackButton from '@/components/BackButton';
 import { format } from 'date-fns';
@@ -27,6 +28,7 @@ import { he } from 'date-fns/locale';
 import { Country } from '@/types/travel';
 import CountryFlag from '@/components/CountryFlag';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
+import RNDateTimePicker from '@react-native-community/datetimepicker';
 import { LinearGradient } from 'expo-linear-gradient';
 
 // Simple calendar component
@@ -170,31 +172,102 @@ export default function StartPointScreen() {
   
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [selectedCountry, setSelectedCountry] = useState<Country | null>(null);
-  const [selectedLocation, setSelectedLocation] = useState('');
   const [showCalendar, setShowCalendar] = useState(false);
+  const [calendarError, setCalendarError] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [customCity, setCustomCity] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [tripDuration, setTripDuration] = useState(5); // Default 5 days
   
-  // Filter countries based on search query
-  const filteredCountries = searchQuery
-    ? countries.filter(country => 
-        country.nameHe.includes(searchQuery) || 
-        country.nameEn.toLowerCase().includes(searchQuery.toLowerCase()))
-    : countries;
+  // Ensure the calendar works properly
+  useEffect(() => {
+    // Reset calendar error state whenever showCalendar changes
+    if (showCalendar) {
+      setCalendarError(false);
+    }
+  }, [showCalendar]);
   
-  // Sample cities for the selected country
-  const getCitiesForCountry = (countryId: string): string[] => {
-    // In a real app, you would fetch this data from an API or database
-    const citiesByCountry: Record<string, string[]> = {
-      'TH': ['בנגקוק', 'צ\'יאנג מאי', 'פוקט', 'קראבי', 'פאי'],
-      'JP': ['טוקיו', 'קיוטו', 'אוסקה', 'הירושימה', 'סאפורו'],
-      'VN': ['הא נוי', 'הו צ\'י מין', 'הוי אן', 'דה נאנג', 'נה טראנג'],
-      // Add more countries and cities as needed
-    };
+  // Handle potential errors with the DateTimePicker
+  const handleCalendarError = () => {
+    setCalendarError(true);
+    setShowCalendar(false);
     
-    return citiesByCountry[countryId] || [];
+    // Show fallback date input
+    Alert.alert(
+      'בחירת תאריך',
+      'יש לבחור תאריך התחלה (YYYY-MM-DD)',
+      [
+        {
+          text: 'ביטול',
+          style: 'cancel',
+        },
+        {
+          text: 'אישור',
+          onPress: (dateText) => {
+            try {
+              // Simple validation of date format (YYYY-MM-DD)
+              if (dateText && typeof dateText === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateText)) {
+                const date = new Date(dateText);
+                if (!isNaN(date.getTime())) {
+                  setStartDate(date);
+                }
+              }
+            } catch (e) {
+              console.error('Error parsing date:', e);
+            }
+          }
+        },
+      ],
+      {
+        cancelable: true,
+      }
+    );
   };
+  
+  // Sort and filter countries based on search query and region
+  const sortedAndFilteredCountries = useMemo(() => {
+    // First filter by search query if any
+    let filtered = searchQuery
+      ? countries.filter(country => 
+          country.nameHe.includes(searchQuery) || 
+          country.nameEn.toLowerCase().includes(searchQuery.toLowerCase()))
+      : [...countries];
+    
+    // If a country is selected, sort to prioritize countries from the same region
+    if (selectedCountry) {
+      filtered.sort((a, b) => {
+        // Put the selected country first
+        if (a.id === selectedCountry.id) return -1;
+        if (b.id === selectedCountry.id) return 1;
+        
+        // Then countries from the same region
+        const aIsSameRegion = a.regionId === selectedCountry.regionId;
+        const bIsSameRegion = b.regionId === selectedCountry.regionId;
+        
+        if (aIsSameRegion && !bIsSameRegion) return -1;
+        if (!aIsSameRegion && bIsSameRegion) return 1;
+        
+        // Within the same region, sort alphabetically
+        if (aIsSameRegion && bIsSameRegion) {
+          return a.nameHe.localeCompare(b.nameHe);
+        }
+        
+        // For other countries, sort by popularity or alphabetically
+        if (a.popular && !b.popular) return -1;
+        if (!a.popular && b.popular) return 1;
+        
+        return a.nameHe.localeCompare(b.nameHe);
+      });
+    } else {
+      // If no country selected, sort by popularity and then alphabetically
+      filtered.sort((a, b) => {
+        if (a.popular && !b.popular) return -1;
+        if (!a.popular && b.popular) return 1;
+        return a.nameHe.localeCompare(b.nameHe);
+      });
+    }
+    
+    return filtered;
+  }, [countries, searchQuery, selectedCountry]);
   
   const steps = [
     { id: 1, title: "נקודת התחלה" },
@@ -206,18 +279,6 @@ export default function StartPointScreen() {
   
   const handleCountrySelect = (country: Country) => {
     setSelectedCountry(country);
-    setSelectedLocation('');
-    setCustomCity('');
-  };
-  
-  const handleCitySelect = (city: string) => {
-    setSelectedLocation(city);
-    setCustomCity('');
-  };
-  
-  const handleCustomCityChange = (text: string) => {
-    setCustomCity(text);
-    setSelectedLocation('');
   };
   
   const validateDate = () => {
@@ -226,12 +287,26 @@ export default function StartPointScreen() {
       return false;
     }
     
-    if (startDate < new Date()) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const startDateTime = new Date(startDate);
+    startDateTime.setHours(0, 0, 0, 0);
+    
+    if (startDateTime < today) {
       Alert.alert('שגיאה', 'תאריך ההתחלה חייב להיות בעתיד');
       return false;
     }
     
     return true;
+  };
+  
+  const changeTripDuration = (increment: boolean) => {
+    if (increment) {
+      setTripDuration(prevDuration => prevDuration + 1);
+    } else {
+      setTripDuration(prevDuration => Math.max(1, prevDuration - 1));
+    }
   };
   
   const handleNext = () => {
@@ -247,8 +322,8 @@ export default function StartPointScreen() {
     setTripStartPoint({
       countryId: selectedCountry.id,
       countryName: selectedCountry.nameHe,
-      locationId: selectedLocation || customCity || undefined,
-      date: startDate ? format(startDate, 'yyyy-MM-dd') : ''
+      date: startDate ? format(startDate, 'yyyy-MM-dd') : '',
+      tripDuration: tripDuration
     });
     
     router.push('/create-trip/visit-countries');
@@ -256,6 +331,12 @@ export default function StartPointScreen() {
   
   const handleSelectDate = (date: Date) => {
     setStartDate(date);
+    setShowCalendar(false);
+  };
+
+  const handlePressDateButton = () => {
+    console.log('Date button pressed, showing calendar');
+    setShowCalendar(true);
   };
 
   return (
@@ -279,42 +360,162 @@ export default function StartPointScreen() {
         <StepIndicator steps={steps} currentStep={1} />
         
         <View style={styles.sectionContainer}>
+          <Text style={styles.sectionTitle}>תאריך התחלה</Text>
+          
+          <TouchableOpacity
+            style={styles.dateButtonContainer}
+            onPress={handlePressDateButton}
+            activeOpacity={0.8}
+          >
+            <LinearGradient
+              colors={['rgba(255,255,255,0.9)', 'rgba(240,242,250,0.95)']}
+              style={styles.dateGradient}
+            >
+              <View style={styles.dateButtonContent}>
+                <Calendar size={24} color={colors.primary} style={styles.dateIcon} />
+                <Text style={styles.dateText}>
+                  {startDate ? format(startDate, 'dd/MM/yyyy', { locale: he }) : 'בחר תאריך התחלה'}
+                </Text>
+                <View style={styles.dateChevronContainer}>
+                  <ChevronDown size={18} color={colors.primary} />
+                </View>
+              </View>
+            </LinearGradient>
+          </TouchableOpacity>
+          
+          <View style={styles.durationContainer}>
+            <Text style={styles.durationLabel}>משך הטיול (ימים):</Text>
+            <View style={styles.durationControls}>
+              <TouchableOpacity 
+                style={styles.durationButton}
+                onPress={() => changeTripDuration(false)}
+              >
+                <Minus size={20} color={colors.primary} />
+              </TouchableOpacity>
+              
+              <Text style={styles.durationValue}>{tripDuration}</Text>
+              
+              <TouchableOpacity 
+                style={styles.durationButton}
+                onPress={() => changeTripDuration(true)}
+              >
+                <Plus size={20} color={colors.primary} />
+              </TouchableOpacity>
+            </View>
+          </View>
+          
+          {Platform.OS === 'web' && showCalendar && (
+            <Modal
+              visible={true}
+              transparent={true}
+              animationType="fade"
+              onRequestClose={() => setShowCalendar(false)}
+            >
+              <TouchableOpacity 
+                style={styles.modalContainer} 
+                activeOpacity={1}
+                onPress={() => setShowCalendar(false)}
+              >
+                <View 
+                  style={styles.modalContent}
+                  onStartShouldSetResponder={() => true}
+                  onTouchEnd={e => e.stopPropagation()}
+                >
+                  <Text style={styles.modalTitle}>בחר תאריך התחלה</Text>
+                  <CalendarPicker
+                    selectedDate={startDate || new Date()}
+                    onSelectDate={handleSelectDate}
+                    onClose={() => setShowCalendar(false)}
+                  />
+                </View>
+              </TouchableOpacity>
+            </Modal>
+          )}
+          
+          {Platform.OS === 'android' && showCalendar && (
+            <RNDateTimePicker
+              value={startDate || new Date()}
+              mode="date"
+              display="default"
+              onChange={(event, selectedDate) => {
+                setShowCalendar(false);
+                if (selectedDate) {
+                  setStartDate(selectedDate);
+                }
+              }}
+              minimumDate={new Date()}
+            />
+          )}
+          
+          {Platform.OS === 'ios' && (
+            <DateTimePickerModal
+              isVisible={showCalendar}
+              mode="date"
+              onConfirm={handleSelectDate}
+              onCancel={() => setShowCalendar(false)}
+              minimumDate={new Date()}
+              locale="he"
+              confirmTextIOS="אישור"
+              cancelTextIOS="ביטול"
+              headerTextIOS="בחר תאריך"
+              buttonTextColorIOS={colors.primary}
+            />
+          )}
+          
+          {calendarError && (
+            <TouchableOpacity 
+              style={styles.fallbackDateButton}
+              onPress={() => {
+                setCalendarError(false);
+                setShowCalendar(true);
+              }}
+            >
+              <Text style={styles.fallbackDateButtonText}>נתקלנו בבעיה? נסה שוב או הזן תאריך ידנית</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+        
+        <View style={styles.sectionContainer}>
           <Text style={styles.sectionTitle}>מדינת התחלה</Text>
           
           <View style={styles.searchContainer}>
-            <Search size={20} color={colors.muted} style={styles.searchIcon} />
             <TextInput
               style={styles.searchInput}
-              placeholder="חפש מדינה..."
-              placeholderTextColor={colors.muted}
+              placeholder="חיפוש מדינה..."
               value={searchQuery}
               onChangeText={setSearchQuery}
+              placeholderTextColor={colors.muted}
               textAlign="right"
             />
-            {searchQuery !== '' && (
-              <TouchableOpacity 
-                style={styles.clearButton} 
-                onPress={() => setSearchQuery('')}
-              >
-                <X size={16} color={colors.muted} />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity style={styles.clearSearchButton} onPress={() => setSearchQuery('')}>
+                <X size={18} color={colors.muted} />
               </TouchableOpacity>
             )}
+            <Search size={22} color={colors.muted} style={styles.searchIcon} />
           </View>
           
           <FlatList
-            data={filteredCountries}
+            data={selectedCountry ? [selectedCountry] : sortedAndFilteredCountries}
             renderItem={({ item }) => (
               <Pressable 
                 style={[
                   styles.countryCard, 
-                  selectedCountry === item && styles.selectedCard
+                  selectedCountry?.id === item.id && styles.selectedCard,
+                  item.regionId === selectedCountry?.regionId && item.id !== selectedCountry?.id && styles.sameRegionCard
                 ]}
                 onPress={() => handleCountrySelect(item)}
               >
+                <Image 
+                  source={{ uri: item.image || `https://source.unsplash.com/300x200/?${item.nameEn},landmark` }} 
+                  style={styles.countryImage}
+                />
                 <LinearGradient
-                  colors={selectedCountry === item ? 
-                    ['rgba(155, 210, 255, 0.2)', 'rgba(120, 190, 255, 0.3)'] : 
-                    ['rgba(255, 255, 255, 0.7)', 'rgba(245, 245, 245, 0.9)']}
+                  colors={selectedCountry?.id === item.id ? 
+                    ['rgba(0, 0, 0, 0.6)', 'rgba(0, 60, 120, 0.7)'] : 
+                    item.regionId === selectedCountry?.regionId ?
+                    ['rgba(0, 0, 0, 0.4)', 'rgba(0, 90, 120, 0.6)'] :
+                    ['rgba(0, 0, 0, 0.3)', 'rgba(0, 0, 0, 0.5)']}
                   style={styles.cardGradient}
                 />
                 
@@ -324,8 +525,18 @@ export default function StartPointScreen() {
                   </View>
                   
                   <View style={styles.countryInfo}>
-                    <Text style={styles.countryNameHe}>{item.nameHe}</Text>
-                    <Text style={styles.countryName}>{item.name}</Text>
+                    <Text style={[styles.countryNameHe, { color: 'white' }]}>{item.nameHe}</Text>
+                    <Text style={[styles.countryName, { color: 'rgba(255,255,255,0.8)' }]}>{item.nameEn}</Text>
+                    {item.regionId === selectedCountry?.regionId && item.id !== selectedCountry?.id && (
+                      <View style={styles.sameRegionBadge}>
+                        <Text style={styles.sameRegionText}>אותו אזור</Text>
+                      </View>
+                    )}
+                    {selectedCountry?.id === item.id && (
+                      <View style={styles.selectedBadge}>
+                        <Check size={16} color="white" />
+                      </View>
+                    )}
                   </View>
                 </View>
               </Pressable>
@@ -334,90 +545,54 @@ export default function StartPointScreen() {
             horizontal={true}
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.countriesList}
-          />
-        </View>
-        
-        {selectedCountry && (
-          <View style={styles.sectionContainer}>
-            <Text style={styles.sectionTitle}>מיקום התחלה (אופציונלי)</Text>
-            
-            <FlatList
-              data={getCitiesForCountry(selectedCountry.id).map(city => ({ id: city, name: city, nameHe: city })) as Country[]}
-              renderItem={({ item }) => (
-                <Pressable 
-                  style={[
-                    styles.locationCard, 
-                    selectedLocation === item.id && styles.selectedCard
-                  ]}
-                  onPress={() => handleCitySelect(item.id)}
-                >
-                  <LinearGradient
-                    colors={selectedLocation === item.id ? 
-                      ['rgba(155, 210, 255, 0.2)', 'rgba(120, 190, 255, 0.3)'] : 
-                      ['rgba(255, 255, 255, 0.7)', 'rgba(245, 245, 245, 0.9)']}
-                    style={styles.cardGradient}
-                  />
-                  
-                  <View style={styles.locationHeader}>
-                    <View style={styles.locationIconContainer}>
-                      <MapPin size={20} color={colors.primary} />
-                    </View>
-                    
-                    <View style={styles.locationInfo}>
-                      <Text style={styles.locationNameHe}>{item.nameHe}</Text>
-                      <Text style={styles.locationName}>{item.name}</Text>
-                    </View>
-                  </View>
-                </Pressable>
-              )}
-              keyExtractor={item => item.id}
-              horizontal={true}
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.locationsList}
-            />
-          </View>
-        )}
-        
-        <View style={styles.sectionContainer}>
-          <Text style={styles.sectionTitle}>תאריך התחלה</Text>
-          
-          <Pressable 
-            style={styles.dateButton}
-            onPress={() => setShowCalendar(true)}
-          >
-            <Calendar size={20} color={colors.primary} />
-            <Text style={styles.dateButtonText}>
-              {startDate ? format(startDate, 'dd/MM/yyyy', { locale: he }) : 'בחר תאריך התחלה'}
-            </Text>
-          </Pressable>
-          
-          <DateTimePickerModal
-            isVisible={showCalendar}
-            mode="date"
-            onConfirm={handleSelectDate}
-            onCancel={() => setShowCalendar(false)}
-            minimumDate={new Date()}
+            initialNumToRender={5}
+            windowSize={3}
+            getItemLayout={(data, index) => ({
+              length: 172, // Width of card (160) + margin (12)
+              offset: 172 * index,
+              index,
+            })}
           />
         </View>
         
         <View style={styles.buttonContainer}>
-          <Pressable style={styles.backButton} onPress={() => router.back()}>
-            <ArrowLeft size={20} color={colors.primary} />
-            <Text style={styles.backButtonText}>חזור</Text>
-          </Pressable>
-          
-          <Pressable onPress={handleNext}>
+          <Pressable 
+            style={styles.button} 
+            onPress={handleNext}
+          >
             <LinearGradient
               colors={[colors.primary, '#006199']}
               start={{x: 0, y: 0}}
               end={{x: 1, y: 0}}
-              style={styles.nextButton}
+              style={styles.buttonGradient}
             >
-              <Text style={styles.nextButtonText}>המשך</Text>
-              <ArrowRight size={20} color="white" />
+              <ArrowRight size={20} color="white" style={{marginLeft: 8}} />
+              <Text style={styles.buttonTextPrimary}>המשך</Text>
+            </LinearGradient>
+          </Pressable>
+          
+          <Pressable 
+            style={styles.button} 
+            onPress={() => router.back()}
+          >
+            <LinearGradient
+              colors={['rgba(255,255,255,0.9)', 'rgba(245,245,250,0.95)']}
+              style={styles.buttonGradientSecondary}
+            >
+              <ArrowLeft size={20} color={colors.primary} style={{marginLeft: 8}} />
+              <Text style={styles.buttonTextSecondary}>חזור</Text>
             </LinearGradient>
           </Pressable>
         </View>
+        
+        {selectedCountry && (
+          <TouchableOpacity 
+            style={styles.changeSelectionButton} 
+            onPress={() => setSelectedCountry(null)}
+          >
+            <Text style={styles.changeSelectionText}>שנה בחירה</Text>
+          </TouchableOpacity>
+        )}
       </View>
     </SafeAreaView>
   );
@@ -438,22 +613,116 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
+  scrollView: {
+    flex: 1,
+  },
+  scrollViewContent: {
+    flexGrow: 1,
+    padding: 20,
+    paddingBottom: 40,
+  },
   content: {
     flex: 1,
-    padding: 20,
   },
   sectionContainer: {
     marginBottom: 24,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
     color: colors.text,
     marginBottom: 16,
     textAlign: 'right',
+    alignSelf: 'flex-end',
+    textShadowColor: 'rgba(255, 255, 255, 0.75)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  dateButtonContainer: {
+    height: 56,
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  dateGradient: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  dateButtonContent: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    height: '100%',
+  },
+  dateIcon: {
+    marginLeft: 12,
+  },
+  dateText: {
+    flex: 1,
+    fontSize: 16,
+    color: colors.text,
+    textAlign: 'right',
+  },
+  dateChevronContainer: {
+    width: 30,
+    height: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  durationContainer: {
+    marginBottom: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 16,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  durationLabel: {
+    fontSize: 16,
+    color: colors.text,
+    fontWeight: '500',
+    textAlign: 'right',
+  },
+  durationControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  durationButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'white',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.primary,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  durationValue: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: colors.text,
+    minWidth: 40,
+    textAlign: 'center',
+    marginHorizontal: 12,
   },
   searchContainer: {
-    flexDirection: 'row',
+    flexDirection: 'row-reverse',
     alignItems: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
     borderRadius: 16,
@@ -467,7 +736,10 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   searchIcon: {
-    marginLeft: 8,
+    marginRight: 8,
+  },
+  clearSearchButton: {
+    padding: 8,
   },
   searchInput: {
     flex: 1,
@@ -476,158 +748,220 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: 'right',
   },
-  clearButton: {
-    padding: 8,
-  },
   countriesList: {
-    paddingVertical: 8,
-  },
-  locationsList: {
-    paddingVertical: 8,
+    paddingVertical: 12,
+    paddingBottom: 16,
   },
   countryCard: {
-    width: 150,
+    width: 160,
+    height: 130,
     borderRadius: 16,
-    marginRight: 12,
+    marginLeft: 12,
     overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  selectedCard: {
+    borderColor: colors.primary,
+    borderWidth: 2,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 6,
+    elevation: 6,
+  },
+  countryImage: {
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
   },
   cardGradient: {
     position: 'absolute',
     width: '100%',
     height: '100%',
-  },
-  locationCard: {
-    width: 150,
     borderRadius: 16,
-    marginRight: 12,
-    overflow: 'hidden',
-  },
-  selectedCard: {
-    borderColor: colors.primary,
-    borderWidth: 1,
   },
   countryHeader: {
     padding: 16,
+    flexDirection: 'row-reverse',
     alignItems: 'center',
   },
   flagContainer: {
-    marginBottom: 10,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'white',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
   },
   countryInfo: {
-    alignItems: 'center',
+    flex: 1,
   },
   countryNameHe: {
     fontSize: 16,
     fontWeight: 'bold',
     color: colors.text,
-    marginBottom: 4,
-    textAlign: 'center',
+    textAlign: 'right',
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 1,
   },
   countryName: {
     fontSize: 14,
     color: colors.muted,
-    textAlign: 'center',
+    textAlign: 'right',
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 1,
   },
-  locationHeader: {
-    padding: 16,
-    alignItems: 'center',
-  },
-  locationIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+  selectedBadge: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    backgroundColor: colors.primary,
+    borderRadius: 12,
+    width: 24,
+    height: 24,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: colors.primary,
-  },
-  locationInfo: {
-    alignItems: 'center',
-  },
-  locationNameHe: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: colors.text,
-    marginBottom: 4,
-    textAlign: 'center',
-  },
-  locationName: {
-    fontSize: 14,
-    color: colors.muted,
-    textAlign: 'center',
-  },
-  dateButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: colors.primary,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.3,
+    shadowRadius: 1,
     elevation: 2,
-  },
-  dateButtonText: {
-    fontSize: 16,
-    color: colors.text,
-    marginLeft: 12,
   },
   buttonContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 'auto',
+    marginTop: 16,
+    marginBottom: 16,
   },
-  backButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    borderRadius: 12,
-    padding: 16,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
+  button: {
     flex: 1,
-    marginRight: 8,
-    borderWidth: 1,
-    borderColor: colors.primary,
+    height: 56,
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginHorizontal: 4,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
   },
-  backButtonText: {
-    color: colors.primary,
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginLeft: 8,
-  },
-  nextButton: {
-    borderRadius: 12,
-    padding: 16,
-    flexDirection: 'row',
+  buttonGradient: {
+    flex: 1,
+    flexDirection: 'row-reverse',
     justifyContent: 'center',
     alignItems: 'center',
-    flex: 1,
-    marginLeft: 8,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 2,
   },
-  nextButtonText: {
+  buttonGradientSecondary: {
+    flex: 1,
+    flexDirection: 'row-reverse',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.primary,
+  },
+  buttonTextPrimary: {
     color: 'white',
     fontSize: 16,
     fontWeight: 'bold',
-    marginRight: 8,
+  },
+  buttonTextSecondary: {
+    color: colors.primary,
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  changeSelectionButton: {
+    alignSelf: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+  },
+  changeSelectionText: {
+    color: colors.primary,
+    fontWeight: 'bold',
+    textDecorationLine: 'underline',
+  },
+  errorContainer: {
+    backgroundColor: 'rgba(255, 0, 0, 0.1)', 
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 0, 0, 0.3)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  errorText: {
+    color: colors.error,
+    marginLeft: 8,
+    flex: 1,
+    textAlign: 'right',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   calendarContainer: {
-    backgroundColor: colors.background,
+    width: '100%',
+    marginBottom: 16,
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  webCalendarContainer: {
+    width: '100%',
+    marginBottom: 20,
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    paddingHorizontal: 20,
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
+    width: '100%',
+    maxWidth: 400,
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 16,
+    color: colors.text,
+    textAlign: 'center',
   },
   calendarHeader: {
     flexDirection: 'row',
@@ -701,5 +1035,36 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 16,
     fontWeight: '500',
-  }
+  },
+  fallbackDateButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 12,
+    padding: 12,
+    marginTop: 8,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.primary,
+    borderStyle: 'dashed',
+  },
+  fallbackDateButtonText: {
+    color: colors.primary,
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  sameRegionCard: {
+    borderColor: 'rgba(0, 114, 178, 0.5)',
+    borderWidth: 1,
+  },
+  sameRegionBadge: {
+    backgroundColor: 'rgba(0, 114, 178, 0.3)',
+    paddingVertical: 2,
+    paddingHorizontal: 6,
+    borderRadius: 10,
+    marginTop: 4,
+  },
+  sameRegionText: {
+    color: 'white',
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
 });

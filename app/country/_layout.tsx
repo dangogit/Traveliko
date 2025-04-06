@@ -1,6 +1,6 @@
 import React from 'react';
 import { Stack } from 'expo-router';
-import HeaderRight from '@/components/HeaderRight';
+// import HeaderRight from '@/components/HeaderRight';
 import colors from '@/constants/colors';
 
 export default function CountryLayout() {
@@ -8,7 +8,7 @@ export default function CountryLayout() {
     <Stack
       screenOptions={{
         headerShown: true,
-        headerRight: () => <HeaderRight />,
+        // headerRight: () => <HeaderRight />,
         headerStyle: {
           backgroundColor: colors.background,
         },

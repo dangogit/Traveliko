@@ -263,17 +263,40 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
+  scrollView: {
+    flex: 1,
+  },
+  scrollViewContent: {
+    flexGrow: 1,
+    padding: 20,
+    paddingBottom: 40,
+  },
   content: {
     flex: 1,
-    padding: 20,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: colors.text,
+    marginBottom: 8,
+    textAlign: 'right',
+    textShadowColor: 'rgba(255, 255, 255, 0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: colors.muted,
+    marginBottom: 24,
+    textAlign: 'right',
   },
   searchContainer: {
-    flexDirection: 'row',
+    flexDirection: 'row-reverse',
     alignItems: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
     borderRadius: 16,
     paddingHorizontal: 12,
-    marginVertical: 16,
+    marginBottom: 20,
     height: 50,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -282,7 +305,10 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   searchIcon: {
-    marginLeft: 8,
+    marginRight: 8,
+  },
+  clearSearchButton: {
+    padding: 8,
   },
   searchInput: {
     flex: 1,
@@ -291,8 +317,122 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: 'right',
   },
-  clearButton: {
-    padding: 8,
+  filterContainer: {
+    marginBottom: 20,
+  },
+  filterScroll: {
+    flexDirection: 'row-reverse',
+  },
+  filterChip: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 20,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    marginLeft: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 114, 178, 0.2)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  filterChipActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  filterChipText: {
+    fontSize: 14,
+    color: colors.text,
+    fontWeight: '500',
+    marginRight: 6,
+  },
+  filterChipTextActive: {
+    color: 'white',
+  },
+  countriesContainer: {
+    flexDirection: 'row-reverse',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  countryCard: {
+    width: '48%',
+    aspectRatio: 1.5,
+    borderRadius: 16,
+    marginBottom: 16,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  countryImage: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  cardGradient: {
+    flex: 1,
+    padding: 16,
+    justifyContent: 'space-between',
+  },
+  countryFlagContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'white',
+    justifyContent: 'center',
+    alignItems: 'center',
+    alignSelf: 'flex-end',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  countryInfo: {
+    alignItems: 'flex-end',
+  },
+  countryName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: 'white',
+    textAlign: 'right',
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  btnContainer: {
+    flexDirection: 'row-reverse',
+    justifyContent: 'space-between',
+    marginTop: 20,
+  },
+  clearFiltersButton: {
+    backgroundColor: 'rgba(0, 114, 178, 0.1)',
+    borderRadius: 16,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(0, 114, 178, 0.2)',
+  },
+  clearFiltersText: {
+    color: colors.primary,
+    fontSize: 14,
+    fontWeight: '500',
+    marginRight: 8,
+  },
+  emptyStateContainer: {
+    marginTop: 40,
+    alignItems: 'center',
+  },
+  emptyStateText: {
+    fontSize: 16,
+    color: colors.muted,
+    textAlign: 'center',
+    marginTop: 16,
   },
   selectedHeader: {
     marginBottom: 16,
@@ -306,16 +446,6 @@ const styles = StyleSheet.create({
   listContent: {
     paddingBottom: 20,
   },
-  countryCard: {
-    borderRadius: 16,
-    marginBottom: 12,
-    overflow: 'hidden',
-  },
-  cardGradient: {
-    position: 'absolute',
-    width: '100%',
-    height: '100%',
-  },
   selectedCountryCard: {
     borderColor: colors.primary,
     borderWidth: 1,
@@ -328,18 +458,11 @@ const styles = StyleSheet.create({
   flagContainer: {
     marginRight: 16,
   },
-  countryInfo: {
-    flex: 1,
-  },
   countryNameHe: {
     fontSize: 18,
     fontWeight: 'bold',
     color: colors.text,
     marginBottom: 4,
-  },
-  countryName: {
-    fontSize: 14,
-    color: colors.muted,
   },
   selectionIndicator: {
     marginLeft: 8,

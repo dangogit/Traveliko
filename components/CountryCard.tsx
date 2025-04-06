@@ -6,6 +6,8 @@ import { Country } from '@/types/travel';
 import { Heart } from 'lucide-react-native';
 import { useTravelStore } from '@/store/travel-store';
 import colors from '@/constants/colors';
+import { LinearGradient } from 'expo-linear-gradient';
+import CountryFlag from './CountryFlag';
 
 interface CountryCardProps {
   country: Country;
@@ -37,23 +39,39 @@ export default function CountryCard({ country }: CountryCardProps) {
       android_ripple={{ color: 'rgba(0,0,0,0.1)' }}
     >
       <Image
-        source={{ uri: country.image }}
+        source={{ uri: `https://source.unsplash.com/300x200/?${encodeURIComponent(country.nameEn)},landmark,travel` }}
         style={styles.image}
         contentFit="cover"
         transition={300}
+        placeholder={{
+          uri: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?q=80&w=300"
+        }}
       />
-      <View style={styles.overlay}>
-        <View style={styles.header}>
-          <Text style={styles.title}>{country.nameHe}</Text>
-          <Pressable onPress={toggleFavorite} hitSlop={10}>
-            <Heart 
-              size={24} 
-              color="white" 
-              fill={isFav ? "white" : "transparent"} 
-            />
-          </Pressable>
+      <LinearGradient
+        colors={['rgba(0, 0, 0, 0.3)', 'rgba(0, 0, 0, 0.5)']}
+        style={styles.gradient}
+      />
+      <View style={styles.content}>
+        <View style={styles.flagContainer}>
+          <CountryFlag countryCode={country.id} size={30} />
         </View>
-        <Text style={styles.subtitle}>{country.currency}</Text>
+        
+        <View style={styles.infoContainer}>
+          <Text style={styles.countryName}>{country.nameHe}</Text>
+          <Text style={styles.countryNameEn}>{country.nameEn}</Text>
+        </View>
+        
+        <Pressable 
+          onPress={toggleFavorite} 
+          hitSlop={10} 
+          style={styles.favoriteButton}
+        >
+          <Heart 
+            size={22} 
+            color="white" 
+            fill={isFav ? "white" : "transparent"} 
+          />
+        </Pressable>
       </View>
     </Pressable>
   );
@@ -61,44 +79,77 @@ export default function CountryCard({ country }: CountryCardProps) {
 
 const styles = StyleSheet.create({
   container: {
-    height: 160,
+    height: 180,
     borderRadius: 16,
     marginBottom: 16,
     overflow: 'hidden',
     backgroundColor: colors.card,
-    elevation: 2,
+    elevation: 6,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
   },
   image: {
+    position: 'absolute',
     width: '100%',
     height: '100%',
   },
-  overlay: {
+  gradient: {
     position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    width: '100%',
+    height: '100%',
+  },
+  content: {
+    flex: 1,
     padding: 16,
-  },
-  header: {
-    flexDirection: 'row',
     justifyContent: 'space-between',
+  },
+  flagContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'white',
+    justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 2,
+    elevation: 4,
+    alignSelf: 'flex-end',
   },
-  title: {
-    color: 'white',
-    fontSize: 20,
+  infoContainer: {
+    marginTop: 'auto',
+  },
+  countryName: {
+    fontSize: 18,
     fontWeight: 'bold',
-    textAlign: 'right',
-  },
-  subtitle: {
     color: 'white',
-    fontSize: 14,
     textAlign: 'right',
-    marginTop: 4,
+    textShadowColor: 'rgba(0, 0, 0, 0.7)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
+  },
+  countryNameEn: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.9)',
+    textAlign: 'right',
+    textShadowColor: 'rgba(0, 0, 0, 0.7)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
+  },
+  favoriteButton: {
+    position: 'absolute',
+    top: 16,
+    left: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
   }
 });
