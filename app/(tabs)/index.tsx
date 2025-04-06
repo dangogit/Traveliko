@@ -127,14 +127,14 @@ export default function HomeScreen() {
             <Pressable 
               style={styles.actionItem} 
               onPress={() => {
-                console.log("Navigating to trips");
-                router.push("/trips");
+                console.log("Navigating to locations search");
+                router.push("/search?filter=locations");
               }}
             >
               <View style={[styles.actionIcon, {backgroundColor: '#D0F5FD'}]}>
                 <CalendarDays size={24} color="#0693E3" />
               </View>
-              <Text style={styles.actionText}>טיולים שלי</Text>
+              <Text style={styles.actionText}>מקומות</Text>
             </Pressable>
             
             <Pressable 

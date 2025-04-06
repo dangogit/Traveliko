@@ -26,9 +26,9 @@ export default function SearchScreen() {
 
   const tabs = [
     { id: 'all', label: 'הכל' },
-    { id: 'regions', label: 'אזורים' },
-    { id: 'countries', label: 'מדינות' },
     { id: 'locations', label: 'מקומות' },
+    { id: 'countries', label: 'מדינות' },
+    { id: 'regions', label: 'אזורים' },
     { id: 'recommendations', label: 'המלצות' }
   ];
 

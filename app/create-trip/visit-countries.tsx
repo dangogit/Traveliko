@@ -408,7 +408,7 @@ export default function VisitCountriesScreen() {
                         
                         <View style={styles.countryInfo}>
                           <Text style={[styles.countryNameHe, { color: 'white' }]}>{item.nameHe}</Text>
-                          <Text style={[styles.countryNameEn, { color: 'rgba(255,255,255,0.8)' }]}>{item.nameEn}</Text>
+                          <Text style={[styles.countryName, { color: 'rgba(255,255,255,0.8)' }]}>{item.nameEn}</Text>
                           {selectedCountries.some(c => c.id === item.id) && (
                             <View style={styles.selectedBadge}>
                               <Check size={16} color="white" />
@@ -545,8 +545,12 @@ const styles = StyleSheet.create({
   searchIcon: {
     marginRight: 8,
   },
-  clearSearchButton: {
+  clearButton: {
     padding: 8,
+    position: 'absolute',
+    left: 8,
+    top: '50%',
+    transform: [{ translateY: -12 }],
   },
   searchInput: {
     flex: 1,
@@ -554,6 +558,7 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 16,
     textAlign: 'right',
+    position: 'relative',
   },
   infoContainer: {
     backgroundColor: 'rgba(0, 114, 178, 0.1)',
@@ -581,21 +586,24 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   countryCard: {
-    width: '48%',
-    aspectRatio: 1.5,
+    width: 280,
+    height: 180,
     borderRadius: 16,
-    marginBottom: 12,
+    marginRight: 16,
     overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,
     shadowRadius: 4,
     elevation: 3,
+    backgroundColor: colors.card,
+    position: 'relative',
   },
   countryCardGradient: {
     flex: 1,
     padding: 12,
     justifyContent: 'space-between',
+    zIndex: 1,
   },
   countrySelectedOverlay: {
     ...StyleSheet.absoluteFillObject,
@@ -643,6 +651,8 @@ const styles = StyleSheet.create({
   },
   countryInfo: {
     marginTop: 'auto',
+    padding: 12,
+    zIndex: 1,
   },
   countryNameHe: {
     fontSize: 16,
@@ -660,6 +670,9 @@ const styles = StyleSheet.create({
     textShadowColor: 'rgba(0, 0, 0, 0.5)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   countryDaysContainer: {
     marginTop: 8,
@@ -836,7 +849,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: colors.primaryLight,
+    borderColor: colors.border,
   },
   daysCountSmall: {
     fontSize: 12,
@@ -844,6 +857,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 8,
     minWidth: 30,
     textAlign: 'center',
+    textShadowRadius: 1,
   },
   filterContainer: {
     flexDirection: 'column',
@@ -931,11 +945,6 @@ const styles = StyleSheet.create({
   },
   footer: {
     marginTop: 16,
-  },
-  buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 12,
   },
   backButton: {
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
@@ -1027,5 +1036,20 @@ const styles = StyleSheet.create({
     color: colors.muted,
     marginBottom: 16,
     textAlign: 'right',
+  },
+  daysCount: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: 'white',
+    marginHorizontal: 12,
+    minWidth: 30,
+    textAlign: 'center',
+    textShadowColor: 'rgba(0, 0, 0, 0.4)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 1,
+  },
+  selectedCard: {
+    borderColor: colors.primary,
+    borderWidth: 2,
   },
 });
