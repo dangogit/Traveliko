@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTravelStore } from '@/store/travel-store';
+import { useProfileStore } from '@/store/profile-store';
 import colors from '@/constants/colors';
 import { Image } from 'expo-image';
 import { 
@@ -26,7 +27,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 
 const { width } = Dimensions.get('window');
-const cardWidth = width * 0.7;
+const cardWidth = width * 0.65;
 
 // Mock data for location counts
 const getLocationCount = (countryId: string) => {
@@ -57,6 +58,7 @@ export default function HomeScreen() {
   const { 
     getPopularCountries
   } = useTravelStore();
+  const { profile } = useProfileStore();
   const [searchQuery, setSearchQuery] = useState('');
 
   const popularCountries = getPopularCountries();
@@ -90,7 +92,7 @@ export default function HomeScreen() {
           />
           
           <View style={styles.heroContent}>
-            <Text style={styles.welcomeText}>שלום!</Text>
+            <Text style={styles.welcomeText}>שלום, {profile.firstName || 'אורח'}!</Text>
             <Text style={styles.heroTitle}>גלה את העולם</Text>
             <Text style={styles.heroSubtitle}>צור חוויות שלא תשכח לעולם</Text>
             
@@ -242,8 +244,9 @@ const styles = StyleSheet.create({
     paddingBottom: 32,
   },
   heroContainer: {
-    height: 480,
+    height: 380,
     position: 'relative',
+    marginBottom: 24,
   },
   heroImage: {
     width: '100%',
@@ -258,103 +261,106 @@ const styles = StyleSheet.create({
   },
   heroContent: {
     position: 'absolute',
-    bottom: 30,
-    left: 20,
-    right: 20,
-    alignItems: 'flex-end', // Align content to the right for RTL
+    bottom: 24,
+    left: 16,
+    right: 16,
+    alignItems: 'flex-end',
   },
   welcomeText: {
-    fontSize: 18,
-    color: 'rgba(255,255,255,0.9)',
-    marginBottom: 8,
-    fontFamily: 'System', // Choose appropriate Hebrew font if needed
+    fontSize: 16,
+    color: 'rgba(255,255,255,0.95)',
+    marginBottom: 6,
+    fontFamily: 'System',
   },
   heroTitle: {
-    fontSize: 36,
+    fontSize: 32,
     fontWeight: 'bold',
     color: 'white',
-    marginBottom: 8,
+    marginBottom: 6,
     textAlign: 'right',
-    fontFamily: 'System', // Choose appropriate Hebrew font if needed
+    fontFamily: 'System',
   },
   heroSubtitle: {
-    fontSize: 16,
-    color: 'rgba(255,255,255,0.8)',
-    marginBottom: 24,
+    fontSize: 15,
+    color: 'rgba(255,255,255,0.85)',
+    marginBottom: 20,
     textAlign: 'right',
-    fontFamily: 'System', // Choose appropriate Hebrew font if needed
+    fontFamily: 'System',
   },
   searchContainer: {
     width: '100%',
-    marginTop: 16, // Added margin top for better spacing
+    marginTop: 12,
   },
   searchBar: {
-    borderRadius: 25,
+    borderRadius: 12,
     overflow: 'hidden',
+    backgroundColor: 'rgba(0,0,0,0.1)',
   },
   searchInputContainer: {
-    flexDirection: 'row-reverse', // Adjusted for RTL
+    flexDirection: 'row-reverse',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    backgroundColor: 'transparent',
   },
   searchIcon: {
-    marginLeft: 8, // Adjusted margin for RTL
+    marginLeft: 10,
   },
   searchInput: {
     flex: 1,
     fontSize: 16,
     color: 'white',
-    height: '100%', // Ensure input fills height
+    height: '100%',
   },
   quickActionsContainer: {
-    marginTop: -40, // Pull actions up over the hero image slightly
-    paddingBottom: 24,
+    marginTop: 0,
+    paddingBottom: 20,
+    paddingHorizontal: 16,
   },
   quickActionsContent: {
-    paddingHorizontal: 16,
-    gap: 12,
+    paddingHorizontal: 0,
+    gap: 10,
   },
   actionItem: {
     alignItems: 'center',
     backgroundColor: 'white',
     borderRadius: 16,
     padding: 12,
-    width: 90, // Fixed width for consistency
+    width: 85,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
+    elevation: 2,
   },
   actionIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   actionText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '500',
     color: colors.textSecondary,
     textAlign: 'center',
   },
   sectionContainer: {
-    marginTop: 16,
-    paddingHorizontal: 16,
+    marginTop: 24,
+    paddingHorizontal: 0,
   },
   sectionHeader: {
-    flexDirection: 'row-reverse', // Adjusted for RTL
+    flexDirection: 'row-reverse',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 12,
+    paddingHorizontal: 16,
   },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    fontSize: 19,
+    fontWeight: '600',
     color: colors.text,
   },
   seeAllButton: {},
@@ -364,49 +370,56 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   horizontalScrollContent: {
-    paddingRight: 16, // Add padding to the start (right in RTL)
-    gap: 16,
+    paddingHorizontal: 16,
+    gap: 12,
   },
   countryCard: {
     width: cardWidth,
-    height: 200,
-    borderRadius: 16,
+    height: 220,
+    borderRadius: 12,
     overflow: 'hidden',
     position: 'relative',
+    backgroundColor: colors.cardBackground || '#FFFFFF',
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   countryImage: {
     width: '100%',
     height: '100%',
   },
   cardGradient: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    height: '50%',
+    display: 'none',
   },
   countryContent: {
     position: 'absolute',
-    bottom: 12,
-    right: 12, // Adjusted for RTL
-    left: 12,
-    alignItems: 'flex-end', // Align text to the right
+    bottom: 0,
+    right: 0,
+    left: 0,
+    padding: 10,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    alignItems: 'flex-end',
   },
   countryName: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 16,
+    fontWeight: '600',
     color: 'white',
-    marginBottom: 4,
+    marginBottom: 2,
   },
   locationInfo: {
-    flexDirection: 'row-reverse', // Adjusted for RTL
+    flexDirection: 'row-reverse',
     alignItems: 'center',
   },
   locationIcon: {
-    marginLeft: 4, // Adjusted margin for RTL
+    marginLeft: 4,
   },
   locationCount: {
-    fontSize: 13,
+    fontSize: 12,
     color: 'rgba(255,255,255,0.9)',
   },
 }); 
