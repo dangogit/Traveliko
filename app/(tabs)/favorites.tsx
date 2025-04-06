@@ -74,20 +74,22 @@ export default function FavoritesScreen() {
         onTabChange={handleTabChange} 
       />
       
-      {hasFavorites ? (
-        <FlatList
-          data={favorites}
-          renderItem={renderItem}
-          keyExtractor={(item) => `${item.type}-${item.id}`}
-          contentContainerStyle={styles.listContent}
-        />
-      ) : (
-        <EmptyState 
-          title="אין מועדפים"
-          message="הוסף פריטים למועדפים כדי לראות אותם כאן"
-          icon={<Heart size={48} color={colors.muted} />}
-        />
-      )}
+      <View style={styles.contentContainer}>
+        {hasFavorites ? (
+          <FlatList
+            data={favorites}
+            renderItem={renderItem}
+            keyExtractor={(item) => `${item.type}-${item.id}`}
+            contentContainerStyle={styles.listContent}
+          />
+        ) : (
+          <EmptyState 
+            title="אין מועדפים"
+            message="הוסף פריטים למועדפים כדי לראות אותם כאן"
+            icon={<Heart size={48} color={colors.muted} />}
+          />
+        )}
+      </View>
     </SafeAreaView>
   );
 }
@@ -97,8 +99,11 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+  contentContainer: {
+    flex: 1,
+  },
   listContent: {
     padding: 16,
-    gap: 16,
+    gap: 16
   },
 }); 

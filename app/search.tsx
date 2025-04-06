@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, FlatList, SafeAreaView, Pressable } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { StyleSheet, View, Text, FlatList, SafeAreaView } from 'react-native';
+import { Stack, useRouter, useLocalSearchParams } from 'expo-router';
 import { useTravelStore } from '@/store/travel-store';
 import SearchBar from '@/components/SearchBar';
-import FilterTabs from '@/components/FilterTabs';
 import RegionCard from '@/components/RegionCard';
 import CountryCard from '@/components/CountryCard';
 import LocationCard from '@/components/LocationCard';
@@ -14,57 +13,26 @@ import { Search as SearchIcon } from 'lucide-react-native';
 
 export default function SearchScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ filter?: string, query?: string }>();
+  const params = useLocalSearchParams<{ query?: string }>();
   const [searchQuery, setSearchQuery] = useState(params.query || '');
-  const [activeTab, setActiveTab] = useState(params.filter || 'all');
-  const { 
-    searchRegions, 
-    searchCountries, 
-    searchLocations, 
-    searchRecommendations 
-  } = useTravelStore();
 
-  const tabs = [
-    { id: 'all', label: 'הכל' },
-    { id: 'locations', label: 'מקומות' },
-    { id: 'countries', label: 'מדינות' },
-    { id: 'regions', label: 'אזורים' },
-    { id: 'recommendations', label: 'המלצות' }
-  ];
+  const { 
+    searchAll
+  } = useTravelStore();
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
   };
 
-  const handleTabChange = (tabId: string) => {
-    setActiveTab(tabId);
-  };
+  const searchResults = searchAll(searchQuery);
 
-  const regions = searchRegions(searchQuery);
-  const countries = searchCountries(searchQuery);
-  const locations = searchLocations(searchQuery);
-  const recommendations = searchRecommendations(searchQuery);
-
-  const getFilteredResults = () => {
-    switch (activeTab) {
-      case 'regions':
-        return regions.map(item => ({ ...item, type: 'region' }));
-      case 'countries':
-        return countries.map(item => ({ ...item, type: 'country' }));
-      case 'locations':
-        return locations.map(item => ({ ...item, type: 'location' }));
-      case 'recommendations':
-        return recommendations.map(item => ({ ...item, type: 'recommendation' }));
-      case 'all':
-      default:
-        return [
-          ...regions.map(item => ({ ...item, type: 'region' })),
-          ...countries.map(item => ({ ...item, type: 'country' })),
-          ...locations.map(item => ({ ...item, type: 'location' })),
-          ...recommendations.map(item => ({ ...item, type: 'recommendation' }))
-        ];
-    }
-  };
+  const combinedResults = [
+    ...searchResults.regions.map(item => ({ ...item, type: 'region' })),
+    ...searchResults.countries.map(item => ({ ...item, type: 'country' })),
+    ...searchResults.locations.map(item => ({ ...item, type: 'location' })),
+    ...searchResults.accommodations.map(item => ({ ...item, type: 'recommendation' })),
+    ...searchResults.recommendations.filter(rec => rec.type !== 'hotel' && rec.type !== 'hostel').map(item => ({ ...item, type: 'recommendation' }))
+  ].sort(() => Math.random() - 0.5);
 
   const renderItem = ({ item }: any) => {
     switch (item.type) {
@@ -81,27 +49,21 @@ export default function SearchScreen() {
     }
   };
 
-  const results = getFilteredResults();
-
   return (
     <SafeAreaView style={styles.container}>
+      <Stack.Screen options={{ title: `תוצאות חיפוש עבור "${searchQuery}"` }} />
+      
       <View style={styles.searchContainer}>
         <SearchBar 
           value={searchQuery} 
           onChangeText={handleSearch} 
-          placeholder="חפש יעדים, מקומות, המלצות..."
+          placeholder="חפש יעד, מלון, אטרקציה..."
         />
       </View>
       
-      <FilterTabs 
-        tabs={tabs} 
-        activeTab={activeTab} 
-        onTabChange={handleTabChange} 
-      />
-      
-      {results.length > 0 ? (
+      {combinedResults.length > 0 ? (
         <FlatList
-          data={results}
+          data={combinedResults}
           renderItem={renderItem}
           keyExtractor={(item) => `${item.type}-${item.id}`}
           contentContainerStyle={styles.listContent}
@@ -109,7 +71,7 @@ export default function SearchScreen() {
       ) : (
         <EmptyState 
           title="לא נמצאו תוצאות"
-          message={searchQuery ? `לא נמצאו תוצאות עבור "${searchQuery}"` : "התחל לחפש כדי למצוא יעדים"}
+          message={`לא מצאנו תוצאות עבור "${searchQuery}"`}
           icon={<SearchIcon size={48} color={colors.muted} />}
         />
       )}

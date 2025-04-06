@@ -1,9 +1,9 @@
 import React from 'react';
-import { StyleSheet, Text, View, Pressable } from 'react-native';
+import { StyleSheet, Text, View, Pressable, Linking } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { Recommendation } from '@/types/travel';
-import { Heart, Star } from 'lucide-react-native';
+import { Heart, Star, ExternalLink } from 'lucide-react-native';
 import { useTravelStore } from '@/store/travel-store';
 import colors from '@/constants/colors';
 
@@ -27,6 +27,13 @@ export default function RecommendationCard({ recommendation }: RecommendationCar
       removeFavorite(recommendation.id);
     } else {
       addFavorite('recommendation', recommendation.id);
+    }
+  };
+
+  const handleWebsitePress = (e: any) => {
+    e.stopPropagation();
+    if (recommendation.website) {
+      Linking.openURL(recommendation.website).catch(err => console.error("Couldn't load page", err));
     }
   };
 
@@ -72,11 +79,16 @@ export default function RecommendationCard({ recommendation }: RecommendationCar
           
           <View style={styles.ratingContainer}>
             <Star size={16} color={colors.secondary} fill={colors.secondary} />
-            <Text style={styles.rating}>{recommendation.rating.toFixed(1)}</Text>
+            <Text style={styles.rating}>{recommendation.rating?.toFixed(1) ?? 'N/A'}</Text>
           </View>
         </View>
         
-        <Text style={styles.price}>{recommendation.priceRange}</Text>
+        {recommendation.website && (
+          <Pressable style={styles.websiteButton} onPress={handleWebsitePress}>
+            <Text style={styles.websiteButtonText}>לאתר</Text>
+            <ExternalLink size={16} color="white" style={styles.websiteIcon} />
+          </Pressable>
+        )}
       </View>
     </Pressable>
   );
@@ -97,16 +109,18 @@ const styles = StyleSheet.create({
   },
   image: {
     width: 100,
-    height: 100,
+    height: '100%',
   },
   content: {
     flex: 1,
     padding: 12,
+    justifyContent: 'space-between',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
+    marginBottom: 4,
   },
   title: {
     flex: 1,
@@ -114,12 +128,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     textAlign: 'right',
+    marginRight: 8,
   },
   details: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 8,
+    marginTop: 4,
+    marginBottom: 8,
   },
   typeContainer: {
     backgroundColor: colors.highlight,
@@ -142,10 +158,23 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
   },
-  price: {
-    marginTop: 8,
-    color: colors.muted,
-    fontSize: 14,
-    textAlign: 'right',
-  }
+  websiteButton: {
+    backgroundColor: colors.primary,
+    borderRadius: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    marginTop: 'auto',
+  },
+  websiteButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 13,
+  },
+  websiteIcon: {
+    marginLeft: 6,
+  },
 });

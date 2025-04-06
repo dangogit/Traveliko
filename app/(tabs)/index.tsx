@@ -21,7 +21,8 @@ import {
   Globe, 
   Compass, 
   PlaneTakeoff,
-  CalendarDays 
+  Bed,
+  Camera
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
@@ -127,34 +128,21 @@ export default function HomeScreen() {
             <Pressable 
               style={styles.actionItem} 
               onPress={() => {
-                console.log("Navigating to locations search");
-                router.push("/search?filter=locations");
+                console.log("Navigating to transportation");
+                router.push("/transportation");
               }}
             >
-              <View style={[styles.actionIcon, {backgroundColor: '#D0F5FD'}]}>
-                <CalendarDays size={24} color="#0693E3" />
+              <View style={[styles.actionIcon, {backgroundColor: '#F5E1FF'}]}>
+                <PlaneTakeoff size={24} color="#9C27B0" />
               </View>
-              <Text style={styles.actionText}>מקומות</Text>
+              <Text style={styles.actionText}>תחבורה</Text>
             </Pressable>
             
             <Pressable 
               style={styles.actionItem} 
               onPress={() => {
-                console.log("Navigating to countries search");
-                router.push("/search?filter=countries");
-              }}
-            >
-              <View style={[styles.actionIcon, {backgroundColor: '#FFF5D0'}]}>
-                <Globe size={24} color="#F9A826" />
-              </View>
-              <Text style={styles.actionText}>מדינות</Text>
-            </Pressable>
-            
-            <Pressable 
-              style={styles.actionItem} 
-              onPress={() => {
-                console.log("Navigating to regions search");
-                router.push("/search?filter=regions");
+                console.log("Navigating to dedicated regions search");
+                router.push("/regions-search");
               }}
             >
               <View style={[styles.actionIcon, {backgroundColor: '#EBFBEE'}]}>
@@ -166,14 +154,27 @@ export default function HomeScreen() {
             <Pressable 
               style={styles.actionItem} 
               onPress={() => {
-                console.log("Navigating to transportation");
-                router.push("/transportation");
+                console.log("Navigating to dedicated accommodations search");
+                router.push("/accommodations-search");
               }}
             >
-              <View style={[styles.actionIcon, {backgroundColor: '#F5E1FF'}]}>
-                <PlaneTakeoff size={24} color="#9C27B0" />
+              <View style={[styles.actionIcon, {backgroundColor: '#D0F5FD'}]}>
+                <Bed size={24} color="#0693E3" />
               </View>
-              <Text style={styles.actionText}>תחבורה</Text>
+              <Text style={styles.actionText}>לינה</Text>
+            </Pressable>
+            
+            <Pressable 
+              style={styles.actionItem} 
+              onPress={() => {
+                console.log("Navigating to dedicated attractions search");
+                router.push("/attractions-search");
+              }}
+            >
+              <View style={[styles.actionIcon, {backgroundColor: '#FFF5D0'}]}>
+                <Camera size={24} color="#F9A826" />
+              </View>
+              <Text style={styles.actionText}>אטרקציות</Text>
             </Pressable>
           </ScrollView>
         </View>
@@ -344,7 +345,7 @@ const styles = StyleSheet.create({
   actionText: {
     fontSize: 12,
     fontWeight: '500',
-    color: colors.textSecondary,
+    color: colors.text,
     textAlign: 'center',
   },
   sectionContainer: {
@@ -379,7 +380,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     overflow: 'hidden',
     position: 'relative',
-    backgroundColor: colors.cardBackground || '#FFFFFF',
+    backgroundColor: colors.card,
     shadowColor: "#000",
     shadowOffset: {
       width: 0,

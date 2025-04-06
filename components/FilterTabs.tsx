@@ -14,6 +14,7 @@ export default function FilterTabs({ tabs, activeTab, onTabChange }: FilterTabsP
       horizontal 
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={styles.container}
+      style={styles.scrollView}
     >
       {tabs.map((tab) => (
         <Pressable
@@ -39,6 +40,9 @@ export default function FilterTabs({ tabs, activeTab, onTabChange }: FilterTabsP
 }
 
 const styles = StyleSheet.create({
+  scrollView: {
+    flexGrow: 0,
+  },
   container: {
     flexDirection: 'row',
     paddingVertical: 8,
@@ -46,16 +50,16 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   tab: {
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    borderRadius: 25,
-    marginRight: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 20,
+    marginRight: 8,
     backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 36,
+    minHeight: 32,
   },
   activeTab: {
     backgroundColor: colors.primary,
@@ -69,7 +73,7 @@ const styles = StyleSheet.create({
   tabText: {
     color: colors.text,
     fontWeight: '600',
-    fontSize: 15,
+    fontSize: 14,
   },
   activeTabText: {
     color: 'white',

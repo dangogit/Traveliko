@@ -5,7 +5,12 @@ import { regions } from '@/mocks/regions';
 import { countries } from '@/mocks/countries';
 import { locations } from '@/mocks/locations';
 import { recommendations } from '@/mocks/recommendations';
+import { accommodations } from '@/mocks/accommodations';
 import { ChatMessage, UserFavorite, UserHistory, TravelerType, Season, Country, Location, Recommendation } from '@/types/travel';
+
+interface Accommodation extends Recommendation {
+  countryId?: string; 
+}
 
 interface TravelState {
   // Data
@@ -13,6 +18,7 @@ interface TravelState {
   countries: typeof countries;
   locations: typeof locations;
   recommendations: typeof recommendations;
+  accommodations: Accommodation[];
   
   // User data
   favorites: UserFavorite[];
@@ -31,12 +37,12 @@ interface TravelState {
   setSelectedLocationId: (id: string | null) => void;
   setSearchQuery: (query: string) => void;
   
-  addFavorite: (type: 'country' | 'location' | 'recommendation', itemId: string) => void;
+  addFavorite: (type: 'country' | 'location' | 'recommendation' | 'accommodation', itemId: string) => void;
   removeFavorite: (itemId: string) => void;
   isFavorite: (itemId: string) => boolean;
-  toggleFavorite: (type: 'country' | 'location' | 'recommendation', itemId: string) => void;
+  toggleFavorite: (type: 'country' | 'location' | 'recommendation' | 'accommodation', itemId: string) => void;
   
-  addToHistory: (type: 'country' | 'location' | 'recommendation', itemId: string) => void;
+  addToHistory: (type: 'country' | 'location' | 'recommendation' | 'accommodation', itemId: string) => void;
   clearHistory: () => void;
   
   addChatMessage: (text: string, isUser: boolean) => void;
@@ -47,6 +53,7 @@ interface TravelState {
   getCountryById: (id: string) => (typeof countries)[0] | undefined;
   getLocationById: (id: string) => (typeof locations)[0] | undefined;
   getRecommendationById: (id: string) => (typeof recommendations)[0] | undefined;
+  getAccommodationById: (id: string) => Accommodation | undefined;
   
   getCountriesByRegion: (regionId: string) => (typeof countries);
   getLocationsByCountry: (countryId: string) => (typeof locations);
@@ -57,6 +64,7 @@ interface TravelState {
     travelerType?: TravelerType,
     season?: Season
   ) => (typeof recommendations);
+  getAccommodationsByCountry: (countryId: string) => Accommodation[];
   
   // Added selector functions
   getFeaturedRegions: () => (typeof regions);
@@ -68,18 +76,21 @@ interface TravelState {
   searchCountries: (query: string) => (typeof countries);
   searchLocations: (query: string) => (typeof locations);
   searchRecommendations: (query: string) => (typeof recommendations);
+  searchAccommodations: (query: string) => Accommodation[];
   
   searchAll: (query: string) => {
     regions: (typeof regions);
     countries: (typeof countries);
     locations: (typeof locations);
     recommendations: (typeof recommendations);
+    accommodations: Accommodation[];
   };
   
   // Getters for favorites (declare them here)
   getFavoriteCountries: () => Country[];
   getFavoriteLocations: () => Location[];
   getFavoriteRecommendations: () => Recommendation[];
+  getFavoriteAccommodations: () => Accommodation[];
   
   // Reset function
   resetFavorites: () => void;
@@ -93,6 +104,7 @@ export const useTravelStore = create<TravelState>()(
       countries,
       locations,
       recommendations,
+      accommodations,
       
       // User data
       favorites: [],
@@ -183,6 +195,7 @@ export const useTravelStore = create<TravelState>()(
       getCountryById: (id) => get().countries.find(country => country.id === id),
       getLocationById: (id) => get().locations.find(location => location.id === id),
       getRecommendationById: (id) => get().recommendations.find(rec => rec.id === id),
+      getAccommodationById: (id) => get().accommodations.find(acc => acc.id === id),
       
       // Add implementations for favorite getters
       getFavoriteCountries: () => {
@@ -204,6 +217,13 @@ export const useTravelStore = create<TravelState>()(
           .filter(fav => fav.type === 'recommendation')
           .map(fav => fav.itemId);
         return get().recommendations.filter(rec => favoriteIds.includes(rec.id));
+      },
+
+      getFavoriteAccommodations: () => {
+        const favoriteIds = get().favorites
+          .filter(fav => fav.type === 'accommodation')
+          .map(fav => fav.itemId);
+        return get().accommodations.filter(acc => favoriteIds.includes(acc.id));
       },
 
       getCountriesByRegion: (regionId) => 
@@ -241,6 +261,10 @@ export const useTravelStore = create<TravelState>()(
         }
         
         return recs;
+      },
+      
+      getAccommodationsByCountry: (countryId) => {
+        return get().accommodations.filter(acc => acc.countryId === countryId);
       },
       
       // Added selector functions
@@ -302,6 +326,16 @@ export const useTravelStore = create<TravelState>()(
           rec.description.includes(query)
         );
       },
+
+      searchAccommodations: (query) => {
+        if (!query) return get().accommodations;
+        const lowerQuery = query.toLowerCase();
+        return get().accommodations.filter(acc => 
+          (acc.nameHe && acc.nameHe.includes(query)) || 
+          (acc.nameEn && acc.nameEn.toLowerCase().includes(lowerQuery)) ||
+          (acc.description && acc.description.includes(query))
+        );
+      },
       
       searchAll: (query) => {
         const lowerQuery = query.toLowerCase();
@@ -326,7 +360,12 @@ export const useTravelStore = create<TravelState>()(
             rec.nameHe.includes(query) || 
             rec.nameEn.toLowerCase().includes(lowerQuery) ||
             rec.description.includes(query)
-          )
+          ),
+          accommodations: get().accommodations.filter(acc => 
+            (acc.nameHe && acc.nameHe.includes(query)) || 
+            (acc.nameEn && acc.nameEn.toLowerCase().includes(lowerQuery)) ||
+            (acc.description && acc.description.includes(query))
+          ),
         };
       },
       
